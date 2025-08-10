@@ -404,7 +404,17 @@ foreach ($categories_data as $category) {
                                                 <?php foreach ($category_photos as $photo): ?>
                                                     <div class="col-md-4 col-lg-3 mb-3">
                                                         <div class="photo-item <?php echo $photo['active'] ? '' : 'inactive'; ?>">
-                                                            <img src="../<?php echo htmlspecialchars($photo['path']); ?>" 
+                                                            <img src="<?php 
+                                                                    // Handle both Supabase URLs and local paths
+                                                                    $imagePath = $photo['path'];
+                                                                    if (strpos($imagePath, 'http') === 0) {
+                                                                        // Full URL (Supabase), use as is
+                                                                        echo htmlspecialchars($imagePath);
+                                                                    } else {
+                                                                        // Local path, add ../ prefix
+                                                                        echo '../' . htmlspecialchars($imagePath);
+                                                                    }
+                                                                ?>" 
                                                                  alt="<?php echo htmlspecialchars($photo['description'] ?: $photo['original_name']); ?>"
                                                                  class="photo-preview"
                                                                  onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZjNzU3ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg=='">
