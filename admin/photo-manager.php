@@ -71,18 +71,26 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
             if ($set_as_category_image && $category_id) {
                 $result = $db->update('categories', ['image_url' => $uploadResult['url']], 'id = :id', ['id' => $category_id]);
                 if ($result !== false) {
-                    $success = "Photo uploaded and set as category image successfully!";
+                    // Redirect to refresh and show updated category image
+                    header('Location: photo-manager.php?success=category_image_set');
+                    exit;
                 } else {
-                    $success = "Photo uploaded successfully, but failed to set as category image.";
+                    // Redirect with error message
+                    header('Location: photo-manager.php?error=category_image_failed');
+                    exit;
                 }
             } else {
-                $success = "Photo uploaded successfully!";
+                // Redirect with success message
+                header('Location: photo-manager.php?success=photo_uploaded');
+                exit;
             }
         } else {
-            $error = "Failed to upload photo: " . $uploadResult['error'];
+            header('Location: photo-manager.php?error=upload_failed');
+            exit;
         }
     } else {
-        $error = "Please select a valid photo file.";
+        header('Location: photo-manager.php?error=no_file');
+        exit;
     }
 }
 
@@ -127,11 +135,13 @@ if ($_POST && isset($_POST['action'])) {
                     // Update category with this photo's URL
                     $result = $db->update('categories', ['image_url' => $photo['path']], 'id = :id', ['id' => $category_id]);
                     if ($result !== false) {
-                        $success_message = "Photo set as category image successfully!";
+                        // Redirect to refresh and show updated category image
+                        header('Location: photo-manager.php?success=category_image_set');
+                        exit;
                     } else {
-                        $error_message = "Failed to set photo as category image.";
+                        header('Location: photo-manager.php?error=category_image_failed');
+                        exit;
                     }
-                    break;
                 }
             }
             break;
@@ -311,39 +321,43 @@ foreach ($categories_data as $category) {
                     <?php if (isset($_GET['success'])): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <i class="fas fa-check-circle me-2"></i>
-                            Photos updated successfully!
+                            <?php 
+                            switch($_GET['success']) {
+                                case 'category_image_set':
+                                    echo 'Photo set as category image successfully!';
+                                    break;
+                                case 'photo_uploaded':
+                                    echo 'Photo uploaded successfully!';
+                                    break;
+                                case '1':
+                                default:
+                                    echo 'Photos updated successfully!';
+                                    break;
+                            }
+                            ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
                     
-                    <?php if (isset($success)): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <?php echo htmlspecialchars($success); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($error)): ?>
+                    <?php if (isset($_GET['error'])): ?>
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="fas fa-exclamation-circle me-2"></i>
-                            <?php echo htmlspecialchars($error); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($success_message)): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <?php echo htmlspecialchars($success_message); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($error_message)): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            <?php echo htmlspecialchars($error_message); ?>
+                            <?php 
+                            switch($_GET['error']) {
+                                case 'category_image_failed':
+                                    echo 'Failed to set photo as category image.';
+                                    break;
+                                case 'upload_failed':
+                                    echo 'Failed to upload photo.';
+                                    break;
+                                case 'no_file':
+                                    echo 'Please select a valid photo file.';
+                                    break;
+                                default:
+                                    echo 'An error occurred.';
+                                    break;
+                            }
+                            ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     <?php endif; ?>
