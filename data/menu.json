@@ -1,0 +1,14 @@
+[
+    {
+        "id": "6897d1da969a8",
+        "name": "Weiches Ei im Glas | Soft boiled egg",
+        "description": "Just the way you like it",
+        "price": "2.50",
+        "category": "Breakfast & Waffles",
+        "dietary": [
+            "Halal"
+        ],
+        "active": true,
+        "created_at": "2025-08-09 22:55:22"
+    }
+]

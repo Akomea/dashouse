@@ -1,0 +1,19 @@
+# Basic security for admin directory
+Options -Indexes
+ServerSignature Off
+
+# Prevent access to JSON data files
+<Files "*.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Prevent access to README
+<Files "README.md">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Basic PHP security
+php_flag display_errors off
+php_flag log_errors on
