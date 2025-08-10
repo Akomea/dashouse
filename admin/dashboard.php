@@ -31,6 +31,11 @@ if (isset($_GET['logout'])) {
             background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
             min-height: 100vh;
             color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            overflow-y: auto;
         }
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
@@ -50,6 +55,16 @@ if (isset($_GET['logout'])) {
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
             margin: 20px;
             padding: 30px;
+        }
+        .main-content-wrapper {
+            margin-left: 0;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        @media (min-width: 768px) {
+            .main-content-wrapper {
+                margin-left: 250px; /* Width of sidebar on md+ screens */
+            }
         }
         .card {
             border: none;
@@ -100,7 +115,7 @@ if (isset($_GET['logout'])) {
                     <div class="text-center mb-4">
                         <i class="fas fa-cat fa-2x mb-2"></i>
                         <h5>Das House</h5>
-                        <small class="text-muted">Admin Panel</small>
+                        <small class="text-white-50">Admin Panel</small>
                     </div>
                     
                     <nav class="nav flex-column">
@@ -130,7 +145,7 @@ if (isset($_GET['logout'])) {
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10">
+            <div class="col-md-9 col-lg-10 main-content-wrapper">
                 <div class="main-content">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
