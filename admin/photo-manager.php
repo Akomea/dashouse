@@ -7,6 +7,24 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
+// Load categories from database
+require_once 'includes/SupabaseDB.php';
+require_once 'includes/SupabaseStorage.php';
+
+$db = new SupabaseDB();
+
+try {
+    $categories_sql = "SELECT * FROM categories WHERE is_active = true ORDER BY sort_order, name";
+    $categories_data = $db->fetchAll($categories_sql);
+    
+    if ($categories_data === false) {
+        $categories_data = [];
+    }
+} catch (Exception $e) {
+    $categories_data = [];
+    error_log("Error loading categories: " . $e->getMessage());
+}
+
 // Load photo data
 $photos_file = '../data/photos.json';
 $photos_data = [];
@@ -20,30 +38,23 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['photo'];
         $filename = $file['name'];
-        $category = $_POST['category'];
+        $category_id = $_POST['category_id'];
         $description = $_POST['description'] ?? '';
+        $set_as_category_image = isset($_POST['set_as_category_image']);
         
-        // Create upload directory if it doesn't exist
-        $upload_dir = '../demos/burger/images/others/';
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
+        // Upload to Supabase storage
+        $storage = new SupabaseStorage();
+        $uploadResult = $storage->handleFormUpload($file);
         
-        // Generate unique filename
-        $extension = pathinfo($filename, PATHINFO_EXTENSION);
-        $new_filename = uniqid() . '_' . time() . '.' . $extension;
-        $upload_path = $upload_dir . $new_filename;
-        
-        // Move uploaded file
-        if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+        if ($uploadResult['success']) {
             // Add to photos data
             $new_photo = [
                 'id' => uniqid(),
-                'filename' => $new_filename,
+                'filename' => $uploadResult['filename'],
                 'original_name' => $filename,
-                'category' => $category,
+                'category_id' => $category_id,
                 'description' => $description,
-                'path' => 'demos/burger/images/others/' . $new_filename,
+                'path' => $uploadResult['url'],
                 'uploaded_at' => date('Y-m-d H:i:s'),
                 'active' => true
             ];
@@ -56,9 +67,19 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
             }
             file_put_contents($photos_file, json_encode($photos_data, JSON_PRETTY_PRINT));
             
-            $success = "Photo uploaded successfully!";
+            // If set as category image, update the category
+            if ($set_as_category_image && $category_id) {
+                $result = $db->update('categories', ['image_url' => $uploadResult['url']], 'id = :id', ['id' => $category_id]);
+                if ($result !== false) {
+                    $success = "Photo uploaded and set as category image successfully!";
+                } else {
+                    $success = "Photo uploaded successfully, but failed to set as category image.";
+                }
+            } else {
+                $success = "Photo uploaded successfully!";
+            }
         } else {
-            $error = "Failed to upload photo.";
+            $error = "Failed to upload photo: " . $uploadResult['error'];
         }
     } else {
         $error = "Please select a valid photo file.";
@@ -95,6 +116,25 @@ if ($_POST && isset($_POST['action'])) {
                 }
             }
             break;
+            
+        case 'set_category_image':
+            $photo_id = $_POST['photo_id'];
+            $category_id = $_POST['category_id'];
+            
+            // Find the photo
+            foreach ($photos_data as $photo) {
+                if ($photo['id'] === $photo_id) {
+                    // Update category with this photo's URL
+                    $result = $db->update('categories', ['image_url' => $photo['path']], 'id = :id', ['id' => $category_id]);
+                    if ($result !== false) {
+                        $success_message = "Photo set as category image successfully!";
+                    } else {
+                        $error_message = "Failed to set photo as category image.";
+                    }
+                    break;
+                }
+            }
+            break;
     }
     
     // Save changes
@@ -108,14 +148,11 @@ if ($_POST && isset($_POST['action'])) {
     exit;
 }
 
-// Get categories
-$categories = ['Breakfast & Waffles', 'Snacks & Sides', 'Beverages', 'Cocktails & Spirits', 'General'];
-
 // Get existing photos by category
 $photos_by_category = [];
-foreach ($categories as $category) {
-    $photos_by_category[$category] = array_filter($photos_data, function($photo) use ($category) {
-        return $photo['category'] === $category;
+foreach ($categories_data as $category) {
+    $photos_by_category[$category['id']] = array_filter($photos_data, function($photo) use ($category) {
+        return isset($photo['category_id']) ? $photo['category_id'] == $category['id'] : $photo['category'] === $category['name'];
     });
 }
 ?>
@@ -279,6 +316,38 @@ foreach ($categories as $category) {
                         </div>
                     <?php endif; ?>
                     
+                    <?php if (isset($success)): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <?php echo htmlspecialchars($success); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($error)): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <?php echo htmlspecialchars($error); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($success_message)): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <?php echo htmlspecialchars($success_message); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($error_message)): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <?php echo htmlspecialchars($error_message); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+                    
                     <!-- Upload Area -->
                     <div class="card mb-4">
                         <div class="card-body">
@@ -293,17 +362,25 @@ foreach ($categories as $category) {
                     
                     <!-- Photos by Category -->
                     <div class="row">
-                        <?php foreach ($categories as $category): ?>
+                        <?php foreach ($categories_data as $category): ?>
                             <div class="col-12 mb-4">
                                 <div class="card">
-                                    <div class="card-header category-header">
+                                    <div class="card-header category-header d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0">
-                                            <i class="fas fa-tag me-2"></i><?php echo htmlspecialchars($category); ?>
+                                            <i class="fas fa-tag me-2"></i><?php echo htmlspecialchars($category['name']); ?>
                                         </h5>
+                                        <?php if (!empty($category['image_url'])): ?>
+                                            <div class="current-category-image">
+                                                <small class="text-light me-2">Current image:</small>
+                                                <img src="<?php echo htmlspecialchars($category['image_url']); ?>" 
+                                                     alt="Category image" 
+                                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px; border: 2px solid rgba(255,255,255,0.3);">
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="card-body">
                                         <?php
-                                        $category_photos = $photos_by_category[$category] ?? [];
+                                        $category_photos = $photos_by_category[$category['id']] ?? [];
                                         ?>
                                         
                                         <?php if (empty($category_photos)): ?>
@@ -325,6 +402,14 @@ foreach ($categories as $category) {
                                                                 <div class="d-flex justify-content-between align-items-center">
                                                                     <small class="text-muted"><?php echo date('M j, Y', strtotime($photo['uploaded_at'])); ?></small>
                                                                     <div class="btn-group btn-group-sm">
+                                                                        <form method="POST" class="d-inline">
+                                                                            <input type="hidden" name="action" value="set_category_image">
+                                                                            <input type="hidden" name="photo_id" value="<?php echo $photo['id']; ?>">
+                                                                            <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
+                                                                            <button type="submit" class="btn btn-outline-primary" title="Set as Category Image">
+                                                                                <i class="fas fa-star"></i>
+                                                                            </button>
+                                                                        </form>
                                                                         <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this photo?')">
                                                                             <input type="hidden" name="action" value="delete">
                                                                             <input type="hidden" name="photo_id" value="<?php echo $photo['id']; ?>">
@@ -376,11 +461,11 @@ foreach ($categories as $category) {
                         </div>
                         
                         <div class="mb-3">
-                            <label for="category" class="form-label">Category *</label>
-                            <select class="form-select" id="category" name="category" required>
+                            <label for="category_id" class="form-label">Category *</label>
+                            <select class="form-select" id="category_id" name="category_id" required>
                                 <option value="">Select Category</option>
-                                <?php foreach ($categories as $category): ?>
-                                    <option value="<?php echo htmlspecialchars($category); ?>"><?php echo htmlspecialchars($category); ?></option>
+                                <?php foreach ($categories_data as $category): ?>
+                                    <option value="<?php echo htmlspecialchars($category['id']); ?>"><?php echo htmlspecialchars($category['name']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -388,6 +473,16 @@ foreach ($categories as $category) {
                         <div class="mb-3">
                             <label for="description" class="form-label">Description (Optional)</label>
                             <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe the photo, what it shows, etc."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="set_as_category_image" name="set_as_category_image">
+                                <label class="form-check-label" for="set_as_category_image">
+                                    <strong>Set as Category Image</strong>
+                                    <br><small class="text-muted">This photo will become the featured image for the selected category</small>
+                                </label>
+                            </div>
                         </div>
                         
                         <div class="alert alert-info">
