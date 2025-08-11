@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../config/supabase.php';
 
 class SupabaseDB {
-    private $pdo;
     private $supabase_url;
     private $supabase_key;
     private $headers;
@@ -16,22 +15,8 @@ class SupabaseDB {
             'apikey: ' . $this->supabase_key
         ];
         
-        $this->connectDirectDB();
-    }
-    
-    /**
-     * Connect directly to PostgreSQL database
-     */
-    private function connectDirectDB() {
-        try {
-            $dsn = "pgsql:host=" . SUPABASE_DB_HOST . ";dbname=" . SUPABASE_DB_NAME . ";port=5432";
-            $this->pdo = new PDO($dsn, SUPABASE_DB_USER, SUPABASE_DB_PASSWORD);
-            $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Database connection failed: " . $e->getMessage());
-            $this->pdo = null;
-        }
+        // Remove direct database connection attempt
+        // $this->connectDirectDB();
     }
     
     /**
@@ -45,6 +30,8 @@ class SupabaseDB {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         
         if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -52,7 +39,13 @@ class SupabaseDB {
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
+        
+        if ($curlError) {
+            error_log("cURL error: " . $curlError);
+            return false;
+        }
         
         if ($httpCode >= 200 && $httpCode < 300) {
             return json_decode($response, true);
@@ -63,104 +56,57 @@ class SupabaseDB {
     }
     
     /**
-     * Execute a direct SQL query
+     * Execute a query using REST API (improved SQL parsing for simpler cases)
+     * Note: This method should be deprecated in favor of direct REST API calls
      */
     public function query($sql, $params = []) {
-        if (!$this->pdo) {
-            error_log("No database connection available");
-            return false;
-        }
+        error_log("SupabaseDB::query() called with SQL: " . $sql);
+        error_log("SupabaseDB::query() called with params: " . json_encode($params));
         
-        try {
-            error_log("=== QUERY DEBUG START ===");
-            error_log("Original SQL: " . $sql);
-            error_log("Original Params: " . json_encode($params));
-            error_log("Original Param Types: " . json_encode(array_map('gettype', $params)));
+        // Basic SQL parsing - this is limited and should be replaced with direct API calls
+        $sql = trim($sql);
+        
+        // Simple SELECT queries
+        if (preg_match('/^SELECT\s+.*FROM\s+(\w+)/i', $sql, $matches)) {
+            $table = $matches[1];
             
-            // Fix boolean parameters - convert empty strings and nulls to proper booleans
-            $fixedParams = $this->fixBooleanParams($params);
-            error_log("Fixed Params: " . json_encode($fixedParams));
-            error_log("Fixed Param Types: " . json_encode(array_map('gettype', $fixedParams)));
+            // Build query params for REST API
+            $queryParams = [];
             
-            $stmt = $this->pdo->prepare($sql);
-            
-            // Bind parameters with explicit types to avoid PDO guessing
-            foreach ($fixedParams as $i => $param) {
-                $paramType = PDO::PARAM_STR; // Default to string
-                
-                if (is_bool($param)) {
-                    $paramType = PDO::PARAM_BOOL;
-                    error_log("Binding param {$i} as BOOLEAN: " . var_export($param, true));
-                } elseif (is_int($param)) {
-                    $paramType = PDO::PARAM_INT;
-                    error_log("Binding param {$i} as INT: " . var_export($param, true));
-                } elseif (is_float($param)) {
-                    $paramType = PDO::PARAM_STR; // PDO doesn't have PARAM_FLOAT, use string
-                    error_log("Binding param {$i} as FLOAT: " . var_export($param, true));
-                } else {
-                    error_log("Binding param {$i} as STRING: " . var_export($param, true));
+            // Handle WHERE clauses for simple cases
+            if (preg_match('/WHERE\s+(\w+)\s*=\s*:(\w+)/i', $sql, $whereMatches)) {
+                $column = $whereMatches[1];
+                $paramName = $whereMatches[2];
+                if (isset($params[$paramName])) {
+                    $queryParams[$column] = 'eq.' . $params[$paramName];
                 }
-                
-                $stmt->bindValue($i + 1, $param, $paramType);
             }
             
-            error_log("Executing statement...");
-            $result = $stmt->execute();
-            
-            if (!$result) {
-                $errorInfo = $stmt->errorInfo();
-                error_log("SQL execution failed: " . json_encode($errorInfo));
-                throw new PDOException("SQL execution failed: " . $errorInfo[2]);
+            // Handle ORDER BY
+            if (preg_match('/ORDER\s+BY\s+([\w\s,]+)/i', $sql, $orderMatches)) {
+                $orderBy = trim($orderMatches[1]);
+                $queryParams['order'] = str_replace(' ', '', $orderBy);
             }
             
-            error_log("=== QUERY DEBUG END ===");
-            return $stmt;
-        } catch (PDOException $e) {
-            error_log("=== QUERY ERROR DEBUG ===");
-            error_log("Database query error: " . $e->getMessage());
-            error_log("SQL: " . $sql);
-            error_log("Original Params: " . json_encode($params));
-            error_log("Fixed Params: " . json_encode($fixedParams ?? $params));
-            error_log("=== QUERY ERROR DEBUG END ===");
-
-            // In development mode, throw the exception to see the real error
-            if (defined('IS_DEVELOPMENT') && IS_DEVELOPMENT) {
-                throw $e;
-            }
-
-            return false;
-        }
-    }
-
-    /**
-     * Fix boolean parameters to prevent type conversion errors
-     */
-    private function fixBooleanParams($params) {
-        error_log("fixBooleanParams called with: " . json_encode($params));
-        
-        $fixed = [];
-        foreach ($params as $i => $param) {
-            if ($param === '') {
-                error_log("Converting empty string at position {$i} to null");
-                $fixed[] = null; // Convert empty string to null
-            } elseif ($param === 'true' || $param === 'false') {
-                error_log("Converting string boolean '{$param}' at position {$i} to " . ($param === 'true' ? 'true' : 'false'));
-                $fixed[] = ($param === 'true'); // Convert string booleans to actual booleans
-            } else {
-                $fixed[] = $param; // Keep other values as-is
-            }
+            $result = $this->apiCall($table, 'GET', null, $queryParams);
+            
+            return new SupabaseStatementResult($result);
         }
         
-        error_log("fixBooleanParams returning: " . json_encode($fixed));
-        return $fixed;
+        // For complex queries, log an error and return false
+        error_log("Complex SQL query not supported, use direct API calls instead: " . $sql);
+        return false;
     }
-    
+
     /**
      * Fetch all rows from a query
      */
     public function fetchAll($sql, $params = []) {
         $stmt = $this->query($sql, $params);
-        return $stmt ? $stmt->fetchAll() : false;
+        if ($stmt && $stmt instanceof SupabaseStatementResult) {
+            return $stmt->fetchAll();
+        }
+        return false;
     }
     
     /**
@@ -168,90 +114,127 @@ class SupabaseDB {
      */
     public function fetch($sql, $params = []) {
         $stmt = $this->query($sql, $params);
-        return $stmt ? $stmt->fetch() : false;
+        if ($stmt && $stmt instanceof SupabaseStatementResult) {
+            return $stmt->fetch();
+        }
+        return false;
     }
     
     /**
      * Insert data into a table
      */
     public function insert($table, $data) {
-        $columns = implode(', ', array_keys($data));
-        $placeholders = ':' . implode(', :', array_keys($data));
-        
-        $sql = "INSERT INTO $table ($columns) VALUES ($placeholders) RETURNING id";
-        $stmt = $this->query($sql, $data);
-        
-        if ($stmt) {
-            $result = $stmt->fetch();
-            return $result['id'] ?? true;
+        $result = $this->apiCall($table, 'POST', $data);
+        if ($result && isset($result['id'])) {
+            return $result['id'];
         }
-        return false;
+        return $result ? true : false;
     }
     
     /**
      * Update data in a table
      */
     public function update($table, $data, $where, $whereParams = []) {
-        $setParts = [];
-        foreach (array_keys($data) as $column) {
-            $setParts[] = "$column = :$column";
+        // Extract ID from where clause for REST API
+        $id = null;
+        if (preg_match('/id\s*=\s*(\d+)/', $where, $matches)) {
+            $id = $matches[1];
+        } elseif (isset($whereParams['id'])) {
+            $id = $whereParams['id'];
         }
-        $setClause = implode(', ', $setParts);
         
-        $sql = "UPDATE $table SET $setClause WHERE $where";
-        $params = array_merge($data, $whereParams);
-        
-        $stmt = $this->query($sql, $params);
-        return $stmt ? $stmt->rowCount() : false;
+        if ($id) {
+            $result = $this->apiCall($table . '?id=eq.' . $id, 'PATCH', $data);
+            return $result ? 1 : 0;
+        }
+        return 0;
     }
     
     /**
      * Delete from a table
      */
     public function delete($table, $where, $params = []) {
-        $sql = "DELETE FROM $table WHERE $where";
-        $stmt = $this->query($sql, $params);
-        return $stmt ? $stmt->rowCount() : false;
+        $id = null;
+        if (preg_match('/id\s*=\s*(\d+)/', $where, $matches)) {
+            $id = $matches[1];
+        } elseif (isset($params['id'])) {
+            $id = $params['id'];
+        }
+        
+        if ($id) {
+            $result = $this->apiCall($table . '?id=eq.' . $id, 'DELETE');
+            return $result ? 1 : 0;
+        }
+        return 0;
     }
     
     /**
      * Check if table exists
      */
     public function tableExists($table) {
-        $sql = "SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = :table
-        )";
-        
-        $result = $this->fetch($sql, ['table' => $table]);
-        return $result ? (bool)$result['exists'] : false;
+        $result = $this->apiCall($table . '?limit=1');
+        return $result !== false;
     }
     
     /**
-     * Get table structure
+     * Get table structure (limited with REST API)
      */
     public function getTableStructure($table) {
-        $sql = "SELECT column_name, data_type, is_nullable, column_default 
-                FROM information_schema.columns 
-                WHERE table_name = :table 
-                ORDER BY ordinal_position";
-        
-        return $this->fetchAll($sql, ['table' => $table]);
+        // REST API doesn't provide schema info easily, return basic structure
+        return [
+            ['column_name' => 'id', 'data_type' => 'integer'],
+            ['column_name' => 'created_at', 'data_type' => 'timestamp'],
+            ['column_name' => 'updated_at', 'data_type' => 'timestamp']
+        ];
     }
     
     /**
      * Close database connection
      */
     public function close() {
-        $this->pdo = null;
+        // No connection to close with REST API
     }
     
     /**
      * Get last insert ID
      */
     public function lastInsertId() {
-        return $this->pdo ? $this->pdo->lastInsertId() : false;
+        // Not available with REST API
+        return false;
+    }
+}
+
+/**
+ * Simple statement result wrapper for compatibility
+ */
+class SupabaseStatementResult {
+    private $result;
+    
+    public function __construct($result) {
+        $this->result = $result ?: [];
+    }
+    
+    public function execute() {
+        return $this->result !== false;
+    }
+    
+    public function fetchAll() {
+        return is_array($this->result) ? $this->result : [];
+    }
+    
+    public function fetch() {
+        if (is_array($this->result) && !empty($this->result)) {
+            return $this->result[0];
+        }
+        return false;
+    }
+    
+    public function rowCount() {
+        return is_array($this->result) ? count($this->result) : 0;
+    }
+    
+    public function errorInfo() {
+        return ['', '', 'REST API call'];
     }
 }
 ?>

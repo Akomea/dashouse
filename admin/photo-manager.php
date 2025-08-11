@@ -542,6 +542,7 @@ foreach ($categories_data as $category) {
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/supabase-client.js"></script>
     <script>
         // Drag and drop functionality
         const uploadArea = document.getElementById('uploadArea');

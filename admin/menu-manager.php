@@ -372,6 +372,7 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/supabase-client.js"></script>
     <script>
         class MenuManager {
             constructor() {

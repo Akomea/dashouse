@@ -302,6 +302,7 @@ try {
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/supabase-client.js"></script>
     <script>
         class CategoryManager {
             constructor() {
@@ -351,8 +352,20 @@ try {
                     return;
                 }
                 
+                // Sort categories by sort_order and then by name
+                const sortedCategories = [...categories].sort((a, b) => {
+                    const sortOrderA = parseInt(a.sort_order) || 0;
+                    const sortOrderB = parseInt(b.sort_order) || 0;
+                    
+                    if (sortOrderA !== sortOrderB) {
+                        return sortOrderA - sortOrderB;
+                    }
+                    
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+                
                 let html = '';
-                categories.forEach(category => {
+                sortedCategories.forEach(category => {
                     const statusBadge = category.is_active 
                         ? '<span class="badge bg-success status-badge">Active</span>'
                         : '<span class="badge bg-secondary status-badge">Inactive</span>';
@@ -505,6 +518,7 @@ try {
                     
                     // Update other fields
                     const data = {
+                        id: formData.get('id'),
                         name: formData.get('name'),
                         description: formData.get('description') || '',
                         sort_order: parseInt(formData.get('sort_order')) || 0,
@@ -514,7 +528,7 @@ try {
                     const response = await fetch(`api/categories.php`, {
                         method: 'PUT',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded',
                         },
                         body: new URLSearchParams(data)
                     });
@@ -547,7 +561,7 @@ try {
                     const response = await fetch(`api/categories.php`, {
                         method: 'DELETE',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded',
                         },
                         body: new URLSearchParams({ id })
                     });
@@ -571,7 +585,7 @@ try {
                     const response = await fetch(`api/categories.php`, {
                         method: 'PUT',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded',
                         },
                         body: new URLSearchParams({
                             id,

@@ -4,9 +4,53 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-require_once '../includes/SupabaseDB.php';
+require_once '../config/supabase.php';
 
-$db = new SupabaseDB();
+/**
+ * Make a REST API call to Supabase
+ */
+function supabaseAPICall($endpoint, $method = 'GET', $data = null, $queryParams = null) {
+    $url = SUPABASE_URL . '/rest/v1/' . $endpoint;
+    
+    if ($queryParams) {
+        $url .= '?' . http_build_query($queryParams);
+    }
+    
+    $headers = [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . SUPABASE_ANON_KEY,
+        'apikey: ' . SUPABASE_ANON_KEY
+    ];
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    
+    if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    }
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    if ($curlError) {
+        error_log("cURL error in supabaseAPICall: " . $curlError);
+        return false;
+    }
+    
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return json_decode($response, true);
+    } else {
+        error_log("Supabase API error: HTTP $httpCode - $response");
+        return false;
+    }
+}
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -17,29 +61,30 @@ try {
             $category_id = $_GET['category_id'] ?? null;
             $is_active = $_GET['is_active'] ?? true;
             
+            // Build query parameters for Supabase REST API
+            $queryParams = [
+                'is_active' => 'eq.' . ($is_active ? 'true' : 'false'),
+                'select' => '*,categories(*)',
+                'order' => 'sort_order,name'
+            ];
+            
             if ($category_id) {
-                $sql = "SELECT mi.*, c.name as category_name 
-                        FROM menu_items mi 
-                        JOIN categories c ON mi.category_id = c.id 
-                        WHERE mi.category_id = :category_id AND mi.is_active = :is_active 
-                        ORDER BY mi.sort_order, mi.name";
-                $params = ['category_id' => $category_id, 'is_active' => $is_active];
-            } else {
-                $sql = "SELECT mi.*, c.name as category_name 
-                        FROM menu_items mi 
-                        JOIN categories c ON mi.category_id = c.id 
-                        WHERE mi.is_active = :is_active 
-                        ORDER BY c.sort_order, mi.sort_order, mi.name";
-                $params = ['is_active' => $is_active];
+                $queryParams['category_id'] = 'eq.' . $category_id;
             }
             
-            $menu_items = $db->fetchAll($sql, $params);
+            $menu_items = supabaseAPICall('menu_items', 'GET', null, $queryParams);
             
             if ($menu_items !== false) {
+                // Transform the data to match the expected format
+                $transformed_items = array_map(function($item) {
+                    $item['category_name'] = $item['categories']['name'] ?? '';
+                    return $item;
+                }, $menu_items);
+                
                 echo json_encode([
                     'success' => true,
-                    'data' => $menu_items,
-                    'count' => count($menu_items)
+                    'data' => $transformed_items,
+                    'count' => count($transformed_items)
                 ]);
             } else {
                 http_response_code(500);
@@ -65,26 +110,26 @@ try {
             }
             
             $menu_item = [
-                'category_id' => $data['category_id'],
+                'category_id' => (int)$data['category_id'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? '',
-                'price' => $data['price'],
+                'price' => (float)$data['price'],
                 'image_url' => $data['image_url'] ?? '',
                 'is_vegetarian' => $data['is_vegetarian'] ?? false,
                 'is_vegan' => $data['is_vegan'] ?? false,
                 'is_gluten_free' => $data['is_gluten_free'] ?? false,
                 'allergens' => $data['allergens'] ?? '',
-                'sort_order' => $data['sort_order'] ?? 0,
+                'sort_order' => (int)($data['sort_order'] ?? 0),
                 'is_active' => $data['is_active'] ?? true
             ];
             
-            $result = $db->insert('menu_items', $menu_item);
+            $result = supabaseAPICall('menu_items', 'POST', $menu_item);
             
-            if ($result) {
+            if ($result !== false) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Menu item added successfully',
-                    'id' => $result
+                    'data' => $result
                 ]);
             } else {
                 http_response_code(500);
@@ -117,7 +162,16 @@ try {
             
             foreach ($allowed_fields as $field) {
                 if (isset($input[$field])) {
-                    $update_data[$field] = $input[$field];
+                    $value = $input[$field];
+                    // Type casting for specific fields
+                    if (in_array($field, ['price'])) {
+                        $value = (float)$value;
+                    } elseif (in_array($field, ['category_id', 'sort_order'])) {
+                        $value = (int)$value;
+                    } elseif (in_array($field, ['is_vegetarian', 'is_vegan', 'is_gluten_free', 'is_active'])) {
+                        $value = (bool)$value;
+                    }
+                    $update_data[$field] = $value;
                 }
             }
             
@@ -130,13 +184,14 @@ try {
                 break;
             }
             
-            $result = $db->update('menu_items', $update_data, 'id = :id', ['id' => $input['id']]);
+            $queryParams = ['id' => 'eq.' . $input['id']];
+            $result = supabaseAPICall('menu_items', 'PATCH', $update_data, $queryParams);
             
             if ($result !== false) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Menu item updated successfully',
-                    'rows_affected' => $result
+                    'data' => $result
                 ]);
             } else {
                 http_response_code(500);
@@ -164,13 +219,13 @@ try {
                 break;
             }
             
-            $result = $db->delete('menu_items', 'id = :id', ['id' => $input['id']]);
+            $queryParams = ['id' => 'eq.' . $input['id']];
+            $result = supabaseAPICall('menu_items', 'DELETE', null, $queryParams);
             
             if ($result !== false) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Menu item deleted successfully',
-                    'rows_affected' => $result
+                    'message' => 'Menu item deleted successfully'
                 ]);
             } else {
                 http_response_code(500);
@@ -197,6 +252,4 @@ try {
         'error' => 'Internal server error: ' . $e->getMessage()
     ]);
 }
-
-$db->close();
 ?>

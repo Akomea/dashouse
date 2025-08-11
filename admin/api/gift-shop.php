@@ -4,35 +4,83 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-$gift_shop_file = __DIR__ . '/../../data/gift-shop.json';
+require_once '../config/supabase.php';
+
+/**
+ * Make a REST API call to Supabase
+ */
+function supabaseAPICall($endpoint, $method = 'GET', $data = null, $queryParams = null) {
+    $url = SUPABASE_URL . '/rest/v1/' . $endpoint;
+    
+    if ($queryParams) {
+        $url .= '?' . http_build_query($queryParams);
+    }
+    
+    $headers = [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . SUPABASE_ANON_KEY,
+        'apikey: ' . SUPABASE_ANON_KEY
+    ];
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    
+    if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    }
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    if ($curlError) {
+        error_log("cURL error in supabaseAPICall: " . $curlError);
+        return false;
+    }
+    
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return json_decode($response, true);
+    } else {
+        error_log("Supabase API error: HTTP $httpCode - $response");
+        return false;
+    }
+}
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
-    
-    // Load existing gift shop data
-    $gift_shop_data = [];
-    if (file_exists($gift_shop_file)) {
-        $content = file_get_contents($gift_shop_file);
-        $gift_shop_data = json_decode($content, true) ?: [];
-    }
     
     switch ($method) {
         case 'GET':
             // Get all gift shop items, optionally filter by active status
             $is_active = $_GET['is_active'] ?? null;
             
+            $queryParams = ['order' => 'sort_order,name'];
+            
             if ($is_active !== null) {
-                $filtered_data = array_filter($gift_shop_data, function($item) use ($is_active) {
-                    return $item['active'] == (bool)$is_active;
-                });
-                $gift_shop_data = array_values($filtered_data);
+                $queryParams['active'] = 'eq.' . ($is_active ? 'true' : 'false');
             }
             
-            echo json_encode([
-                'success' => true,
-                'data' => $gift_shop_data,
-                'count' => count($gift_shop_data)
-            ]);
+            $gift_shop_data = supabaseAPICall('gift_shop_items', 'GET', null, $queryParams);
+            
+            if ($gift_shop_data !== false) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => $gift_shop_data,
+                    'count' => count($gift_shop_data)
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Failed to fetch gift shop items'
+                ]);
+            }
             break;
             
         case 'POST':
@@ -50,29 +98,22 @@ try {
             }
             
             $new_item = [
-                'id' => uniqid(),
                 'name' => $data['name'],
                 'description' => $data['description'] ?? '',
                 'image_url' => $data['image_url'],
                 'filename' => $data['filename'] ?? '',
                 'original_name' => $data['original_name'] ?? $data['name'],
-                'uploaded_at' => date('Y-m-d H:i:s'),
                 'active' => $data['active'] ?? true,
-                'sort_order' => $data['sort_order'] ?? count($gift_shop_data)
+                'sort_order' => (int)($data['sort_order'] ?? 0)
             ];
             
-            $gift_shop_data[] = $new_item;
+            $result = supabaseAPICall('gift_shop_items', 'POST', $new_item);
             
-            // Save to file
-            if (!is_dir('../../data')) {
-                mkdir('../../data', 0755, true);
-            }
-            
-            if (file_put_contents($gift_shop_file, json_encode($gift_shop_data, JSON_PRETTY_PRINT))) {
+            if ($result !== false) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Gift shop item added successfully',
-                    'data' => $new_item
+                    'data' => $result
                 ]);
             } else {
                 http_response_code(500);
@@ -100,35 +141,39 @@ try {
                 break;
             }
             
-            $found = false;
-            foreach ($gift_shop_data as &$item) {
-                if ($item['id'] === $input['id']) {
-                    // Update allowed fields
-                    $allowed_fields = ['name', 'description', 'active', 'sort_order'];
-                    foreach ($allowed_fields as $field) {
-                        if (isset($input[$field])) {
-                            $item[$field] = $input[$field];
-                        }
+            $update_data = [];
+            $allowed_fields = ['name', 'description', 'active', 'sort_order'];
+            
+            foreach ($allowed_fields as $field) {
+                if (isset($input[$field])) {
+                    $value = $input[$field];
+                    // Type casting for specific fields
+                    if ($field === 'sort_order') {
+                        $value = (int)$value;
+                    } elseif ($field === 'active') {
+                        $value = (bool)$value;
                     }
-                    $item['updated_at'] = date('Y-m-d H:i:s');
-                    $found = true;
-                    break;
+                    $update_data[$field] = $value;
                 }
             }
             
-            if (!$found) {
-                http_response_code(404);
+            if (empty($update_data)) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Item not found'
+                    'error' => 'No fields to update'
                 ]);
                 break;
             }
             
-            if (file_put_contents($gift_shop_file, json_encode($gift_shop_data, JSON_PRETTY_PRINT))) {
+            $queryParams = ['id' => 'eq.' . $input['id']];
+            $result = supabaseAPICall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+            
+            if ($result !== false) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Gift shop item updated successfully'
+                    'message' => 'Gift shop item updated successfully',
+                    'data' => $result
                 ]);
             } else {
                 http_response_code(500);
@@ -156,26 +201,10 @@ try {
                 break;
             }
             
-            $found = false;
-            foreach ($gift_shop_data as $key => $item) {
-                if ($item['id'] === $input['id']) {
-                    unset($gift_shop_data[$key]);
-                    $gift_shop_data = array_values($gift_shop_data); // Reindex array
-                    $found = true;
-                    break;
-                }
-            }
+            $queryParams = ['id' => 'eq.' . $input['id']];
+            $result = supabaseAPICall('gift_shop_items', 'DELETE', null, $queryParams);
             
-            if (!$found) {
-                http_response_code(404);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Item not found'
-                ]);
-                break;
-            }
-            
-            if (file_put_contents($gift_shop_file, json_encode($gift_shop_data, JSON_PRETTY_PRINT))) {
+            if ($result !== false) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Gift shop item deleted successfully'

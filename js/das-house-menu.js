@@ -31,8 +31,8 @@ class DasHouseMenu {
         try {
             // Load categories and menu items from our API
             const [categoriesResponse, menuItemsResponse] = await Promise.all([
-                fetch('/admin/api/categories.php'),
-                fetch('/admin/api/menu-items.php')
+                fetch('/admin/api/categories.php?is_active=1'),
+                fetch('/admin/api/menu-items.php?is_active=1')
             ]);
 
             if (!categoriesResponse.ok || !menuItemsResponse.ok) {
@@ -181,8 +181,23 @@ class DasHouseMenu {
         
         const groupedItems = this.groupItemsByCategory(this.menuData.menuItems);
         
+        // Sort categories by their sort_order before rendering
+        const sortedCategoryNames = Object.keys(groupedItems).sort((nameA, nameB) => {
+            const categoryA = this.menuData.categories.find(cat => cat.name === nameA);
+            const categoryB = this.menuData.categories.find(cat => cat.name === nameB);
+            
+            const sortOrderA = parseInt(categoryA?.sort_order) || 0;
+            const sortOrderB = parseInt(categoryB?.sort_order) || 0;
+            
+            if (sortOrderA !== sortOrderB) {
+                return sortOrderA - sortOrderB;
+            }
+            
+            return nameA.localeCompare(nameB);
+        });
+        
         let menuHTML = '';
-        Object.keys(groupedItems).forEach((categoryName, index) => {
+        sortedCategoryNames.forEach((categoryName, index) => {
             const items = groupedItems[categoryName];
             menuHTML += this.renderCategorySection(categoryName, items, index);
         });
@@ -244,7 +259,7 @@ class DasHouseMenu {
         sectionHTML += `
                         </div>
                         <div class="col-md-6 text-center ${imageOrder}">
-                            <img src="${imageSrc}" alt="${categoryName}" class="img-fluid" style="max-width: 400px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                            <img src="${imageSrc}" alt="${categoryName}" class="img-fluid" style="max-width: 400px; height: auto; border-radius: 8px;">
                         </div>
                     </div>
                 </div>

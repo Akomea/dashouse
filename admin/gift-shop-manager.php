@@ -10,13 +10,54 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once 'config/supabase.php';
 require_once 'includes/SupabaseStorage.php';
 
-// Load gift shop data
-$gift_shop_file = '../data/gift-shop.json';
-$gift_shop_data = [];
-
-if (file_exists($gift_shop_file)) {
-    $gift_shop_data = json_decode(file_get_contents($gift_shop_file), true) ?: [];
+/**
+ * Make a REST API call to Supabase
+ */
+function supabaseAPICall($endpoint, $method = 'GET', $data = null, $queryParams = null) {
+    $url = SUPABASE_URL . '/rest/v1/' . $endpoint;
+    
+    if ($queryParams) {
+        $url .= '?' . http_build_query($queryParams);
+    }
+    
+    $headers = [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . SUPABASE_SERVICE_ROLE_KEY, // Use service role for admin operations
+        'apikey: ' . SUPABASE_SERVICE_ROLE_KEY
+    ];
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    
+    if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    }
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    if ($curlError) {
+        error_log("cURL error in gift-shop-manager: " . $curlError);
+        return false;
+    }
+    
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return json_decode($response, true);
+    } else {
+        error_log("Supabase API error in gift-shop-manager: HTTP $httpCode - $response");
+        return false;
+    }
 }
+
+// Load gift shop data from Supabase
+$gift_shop_data = supabaseAPICall('gift_shop_items', 'GET', null, ['order' => 'sort_order,name']) ?: [];
 
 // Handle file uploads
 if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
@@ -31,29 +72,26 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
         $uploadResult = $storage->handleFormUpload($file);
         
         if ($uploadResult['success']) {
-            // Add to gift shop data
+            // Add to Supabase database
             $new_item = [
-                'id' => uniqid(),
-                'filename' => $uploadResult['filename'],
-                'original_name' => $filename,
                 'name' => $name,
                 'description' => $description,
                 'image_url' => $uploadResult['url'],
-                'uploaded_at' => date('Y-m-d H:i:s'),
+                'filename' => $uploadResult['filename'],
+                'original_name' => $filename,
                 'active' => true,
                 'sort_order' => count($gift_shop_data)
             ];
             
-            $gift_shop_data[] = $new_item;
+            $result = supabaseAPICall('gift_shop_items', 'POST', $new_item);
             
-            // Save to file
-            if (!is_dir('../data')) {
-                mkdir('../data', 0755, true);
+            if ($result !== false) {
+                header('Location: gift-shop-manager.php?success=photo_uploaded');
+                exit;
+            } else {
+                header('Location: gift-shop-manager.php?error=database_failed');
+                exit;
             }
-            file_put_contents($gift_shop_file, json_encode($gift_shop_data, JSON_PRETTY_PRINT));
-            
-            header('Location: gift-shop-manager.php?success=photo_uploaded');
-            exit;
         } else {
             header('Location: gift-shop-manager.php?error=upload_failed');
             exit;
@@ -66,27 +104,47 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
 
 // Handle other actions
 if ($_POST && isset($_POST['action'])) {
+    $success = false;
+    $error_message = '';
+    
     switch ($_POST['action']) {
         case 'delete':
             $item_id = $_POST['item_id'];
-            foreach ($gift_shop_data as $key => $item) {
-                if ($item['id'] === $item_id) {
-                    // Remove from data
-                    unset($gift_shop_data[$key]);
-                    break;
-                }
+            $queryParams = ['id' => 'eq.' . $item_id];
+            $result = supabaseAPICall('gift_shop_items', 'DELETE', null, $queryParams);
+            
+            if ($result !== false) {
+                $success = true;
+            } else {
+                $error_message = 'Failed to delete item from database';
             }
-            // Reindex array
-            $gift_shop_data = array_values($gift_shop_data);
             break;
             
         case 'toggle':
             $item_id = $_POST['item_id'];
-            foreach ($gift_shop_data as &$item) {
-                if ($item['id'] === $item_id) {
-                    $item['active'] = !$item['active'];
+            
+            // First, get the current state
+            $current_item = null;
+            foreach ($gift_shop_data as $item) {
+                if ($item['id'] == $item_id) {
+                    $current_item = $item;
                     break;
                 }
+            }
+            
+            if ($current_item) {
+                $new_active_state = !$current_item['active'];
+                $queryParams = ['id' => 'eq.' . $item_id];
+                $update_data = ['active' => $new_active_state];
+                $result = supabaseAPICall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+                
+                if ($result !== false) {
+                    $success = true;
+                } else {
+                    $error_message = 'Failed to toggle item status';
+                }
+            } else {
+                $error_message = 'Item not found';
             }
             break;
             
@@ -95,25 +153,27 @@ if ($_POST && isset($_POST['action'])) {
             $name = $_POST['name'];
             $description = $_POST['description'];
             
-            foreach ($gift_shop_data as &$item) {
-                if ($item['id'] === $item_id) {
-                    $item['name'] = $name;
-                    $item['description'] = $description;
-                    $item['updated_at'] = date('Y-m-d H:i:s');
-                    break;
-                }
+            $queryParams = ['id' => 'eq.' . $item_id];
+            $update_data = [
+                'name' => $name,
+                'description' => $description
+            ];
+            $result = supabaseAPICall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+            
+            if ($result !== false) {
+                $success = true;
+            } else {
+                $error_message = 'Failed to update item';
             }
             break;
     }
     
-    // Save changes
-    if (!is_dir('../data')) {
-        mkdir('../data', 0755, true);
+    // Redirect with appropriate message
+    if ($success) {
+        header('Location: gift-shop-manager.php?success=1');
+    } else {
+        header('Location: gift-shop-manager.php?error=' . urlencode($error_message));
     }
-    file_put_contents($gift_shop_file, json_encode($gift_shop_data, JSON_PRETTY_PRINT));
-    
-    // Redirect to refresh
-    header('Location: gift-shop-manager.php?success=1');
     exit;
 }
 ?>
@@ -328,8 +388,11 @@ if ($_POST && isset($_POST['action'])) {
                                 case 'no_file':
                                     echo 'Please select a valid photo file.';
                                     break;
+                                case 'database_failed':
+                                    echo 'Failed to save gift item to database.';
+                                    break;
                                 default:
-                                    echo 'An error occurred.';
+                                    echo htmlspecialchars(urldecode($_GET['error']));
                                     break;
                             }
                             ?>
@@ -403,7 +466,7 @@ if ($_POST && isset($_POST['action'])) {
                                                     </div>
                                                     
                                                     <div class="d-flex justify-content-between align-items-center mt-3">
-                                                        <small class="text-muted"><?php echo date('M j, Y', strtotime($item['uploaded_at'])); ?></small>
+                                                        <small class="text-muted"><?php echo date('M j, Y', strtotime($item['created_at'])); ?></small>
                                                         <div class="btn-group btn-group-sm">
                                                             <button type="button" class="btn btn-outline-primary" onclick="toggleEdit('<?php echo $item['id']; ?>')" title="Edit">
                                                                 <i class="fas fa-edit"></i>
@@ -483,6 +546,7 @@ if ($_POST && isset($_POST['action'])) {
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/supabase-client.js"></script>
     <script>
         // Drag and drop functionality
         const uploadArea = document.getElementById('uploadArea');

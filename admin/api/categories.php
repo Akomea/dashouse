@@ -4,10 +4,54 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-require_once '../includes/SupabaseDB.php';
+require_once '../config/supabase.php';
 require_once '../includes/SupabaseStorage.php';
 
-$db = new SupabaseDB();
+/**
+ * Make a REST API call to Supabase
+ */
+function supabaseAPICall($endpoint, $method = 'GET', $data = null, $queryParams = null) {
+    $url = SUPABASE_URL . '/rest/v1/' . $endpoint;
+    
+    if ($queryParams) {
+        $url .= '?' . http_build_query($queryParams);
+    }
+    
+    $headers = [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . SUPABASE_ANON_KEY,
+        'apikey: ' . SUPABASE_ANON_KEY
+    ];
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    
+    if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    }
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    if ($curlError) {
+        error_log("cURL error in supabaseAPICall: " . $curlError);
+        return false;
+    }
+    
+    if ($httpCode >= 200 && $httpCode < 300) {
+        return json_decode($response, true);
+    } else {
+        error_log("Supabase API error: HTTP $httpCode - $response");
+        return false;
+    }
+}
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -17,8 +61,12 @@ try {
             // Get all categories
             $is_active = $_GET['is_active'] ?? true;
             
-            $sql = "SELECT * FROM categories WHERE is_active = :is_active ORDER BY sort_order, name";
-            $categories = $db->fetchAll($sql, ['is_active' => $is_active]);
+            $queryParams = [
+                'is_active' => 'eq.' . ($is_active ? 'true' : 'false'),
+                'order' => 'sort_order,name'
+            ];
+            
+            $categories = supabaseAPICall('categories', 'GET', null, $queryParams);
             
             if ($categories !== false) {
                 echo json_encode([
@@ -36,8 +84,20 @@ try {
             break;
             
         case 'POST':
-            // Add new category
-            if (!isset($_POST['name'])) {
+            // Add new category - handle both JSON and form data
+            $data = [];
+            $isFormData = isset($_POST['name']);
+            
+            if ($isFormData) {
+                // Form data submission
+                $data = $_POST;
+            } else {
+                // JSON data submission
+                $json = file_get_contents('php://input');
+                $data = json_decode($json, true);
+            }
+            
+            if (!isset($data['name']) || empty($data['name'])) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -48,8 +108,8 @@ try {
             
             $imageUrl = '';
             
-            // Handle file upload if present
-            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            // Handle file upload if present (only for form data)
+            if ($isFormData && isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                 $storage = new SupabaseStorage();
                 $uploadResult = $storage->handleFormUpload($_FILES['image']);
                 
@@ -65,24 +125,24 @@ try {
                 }
             } else {
                 // Use provided image_url if no file uploaded
-                $imageUrl = $_POST['image_url'] ?? '';
+                $imageUrl = $data['image_url'] ?? '';
             }
             
             $category = [
-                'name' => $_POST['name'],
-                'description' => $_POST['description'] ?? '',
+                'name' => $data['name'],
+                'description' => $data['description'] ?? '',
                 'image_url' => $imageUrl,
-                'sort_order' => $_POST['sort_order'] ?? 0,
-                'is_active' => $_POST['is_active'] ?? true
+                'sort_order' => (int)($data['sort_order'] ?? 0),
+                'is_active' => $data['is_active'] ?? true
             ];
             
-            $result = $db->insert('categories', $category);
+            $result = supabaseAPICall('categories', 'POST', $category);
             
-            if ($result) {
+            if ($result !== false) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Category added successfully',
-                    'id' => $result
+                    'data' => $result
                 ]);
             } else {
                 http_response_code(500);
@@ -124,13 +184,14 @@ try {
                 break;
             }
             
-            $result = $db->update('categories', $update_data, 'id = :id', ['id' => $_PUT['id']]);
+            $queryParams = ['id' => 'eq.' . $_PUT['id']];
+            $result = supabaseAPICall('categories', 'PATCH', $update_data, $queryParams);
             
             if ($result !== false) {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Category updated successfully',
-                    'rows_affected' => $result
+                    'data' => $result
                 ]);
             } else {
                 http_response_code(500);
@@ -154,17 +215,24 @@ try {
                 break;
             }
             
-            // Check if category has menu items
-            $check_sql = "SELECT COUNT(*) as count FROM menu_items WHERE category_id = :id";
-            $check_result = $db->fetch($check_sql, ['id' => $_DELETE['id']]);
+            // Check if category has menu items using Supabase REST API
+            $checkQueryParams = [
+                'category_id' => 'eq.' . $_DELETE['id'],
+                'select' => 'id'
+            ];
             
-            if ($check_result && $check_result['count'] > 0) {
+            $menuItems = supabaseAPICall('menu_items', 'GET', null, $checkQueryParams);
+            
+            if ($menuItems !== false && count($menuItems) > 0) {
                 // Soft delete - set inactive
-                $result = $db->update('categories', ['is_active' => false], 'id = :id', ['id' => $_DELETE['id']]);
+                $updateData = ['is_active' => false];
+                $queryParams = ['id' => 'eq.' . $_DELETE['id']];
+                $result = supabaseAPICall('categories', 'PATCH', $updateData, $queryParams);
                 $message = 'Category deactivated (has menu items)';
             } else {
                 // Hard delete if no menu items
-                $result = $db->delete('categories', 'id = :id', ['id' => $_DELETE['id']]);
+                $queryParams = ['id' => 'eq.' . $_DELETE['id']];
+                $result = supabaseAPICall('categories', 'DELETE', null, $queryParams);
                 $message = 'Category deleted successfully';
             }
             
@@ -172,7 +240,7 @@ try {
                 echo json_encode([
                     'success' => true,
                     'message' => $message,
-                    'rows_affected' => $result
+                    'data' => $result
                 ]);
             } else {
                 http_response_code(500);
@@ -207,14 +275,17 @@ try {
             $uploadResult = $storage->handleFormUpload($_FILES['image']);
             
             if ($uploadResult['success']) {
-                // Update category with new image URL
-                $result = $db->update('categories', ['image_url' => $uploadResult['url']], 'id = :id', ['id' => $_POST['id']]);
+                // Update category with new image URL using Supabase REST API
+                $updateData = ['image_url' => $uploadResult['url']];
+                $queryParams = ['id' => 'eq.' . $_POST['id']];
+                $result = supabaseAPICall('categories', 'PATCH', $updateData, $queryParams);
                 
                 if ($result !== false) {
                     echo json_encode([
                         'success' => true,
                         'message' => 'Category image updated successfully',
-                        'image_url' => $uploadResult['url']
+                        'image_url' => $uploadResult['url'],
+                        'data' => $result
                     ]);
                 } else {
                     http_response_code(500);
@@ -249,5 +320,5 @@ try {
     ]);
 }
 
-$db->close();
+// No database connection to close with REST API
 ?>
