@@ -58,15 +58,22 @@ try {
     switch ($method) {
         case 'GET':
             // Get menu items with optional filtering
+            $id = $_GET['id'] ?? null;
             $category_id = $_GET['category_id'] ?? null;
             $is_active = $_GET['is_active'] ?? true;
             
             // Build query parameters for Supabase REST API
             $queryParams = [
-                'is_active' => 'eq.' . ($is_active ? 'true' : 'false'),
                 'select' => '*,categories(*)',
                 'order' => 'sort_order,name'
             ];
+            
+            // If getting a specific item by ID, don't filter by active status
+            if ($id) {
+                $queryParams['id'] = 'eq.' . $id;
+            } else {
+                $queryParams['is_active'] = 'eq.' . ($is_active ? 'true' : 'false');
+            }
             
             if ($category_id) {
                 $queryParams['category_id'] = 'eq.' . $category_id;
