@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="author" content="SemiColonWeb" />
+
+	<!-- Stylesheets
+	============================================= -->
+	<link href="https://fonts.googleapis.com/css?family=Dosis:400,500,600,700|Open+Sans:400,600,700|Dancing+Script&display=swap" rel="stylesheet" type="text/css" />
+	<link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+	<link rel="stylesheet" href="style.css" type="text/css" />
+	<link rel="stylesheet" href="css/dark.css" type="text/css" />
+
+	<link rel="stylesheet" href="css/font-icons.css" type="text/css" />
+	<link rel="stylesheet" href="css/animate.css" type="text/css" />
+	<link rel="stylesheet" href="css/magnific-popup.css" type="text/css" />
+
+	<link rel="stylesheet" href="css/custom.css" type="text/css" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+	<!-- Das House Specific Stylesheet -->
+	<link rel="stylesheet" href="css/colors.php?color=FBAF32" type="text/css" /> <!-- Burger Theme Color -->
+	<link rel="stylesheet" href="demos/burger/css/fonts.css" type="text/css" /> <!-- Burger Theme Font -->
+	<link rel="stylesheet" href="demos/burger/burger.css" type="text/css" /> <!-- Burger Theme Custom CSS -->
+	
+	<!-- AOS for animations -->
+	<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+	
+	<!-- Custom Gift Shop Styles -->
+	<style>
+		.gift-item-card {
+			background: white;
+			border-radius: 15px;
+			overflow: hidden;
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+			transition: all 0.3s ease;
+			cursor: pointer;
+			opacity: 1 !important;
+			visibility: visible !important;
+			display: block !important;
+		}
+		
+		.gift-item-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+		}
+		
+		.gift-image-container {
+			position: relative;
+			overflow: hidden;
+		}
+		
+		.gift-image {
+			width: 100%;
+			height: 250px;
+			object-fit: cover;
+			transition: transform 0.3s ease;
+			display: block !important;
+			opacity: 1 !important;
+			visibility: visible !important;
+		}
+		
+		.gift-item-card:hover .gift-image {
+			transform: scale(1.05);
+		}
+		
+		.gift-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.7);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			opacity: 0;
+			transition: opacity 0.3s ease;
+		}
+		
+		.gift-item-card:hover .gift-overlay {
+			opacity: 1;
+		}
+		
+		.gift-overlay i {
+			color: white;
+			font-size: 2rem;
+		}
+		
+		.gift-content {
+			padding: 20px;
+		}
+		
+		.gift-title {
+			font-family: 'Dosis', sans-serif;
+			font-weight: 600;
+			color: #2c3e50;
+			margin-bottom: 10px;
+		}
+		
+		.gift-description {
+			color: #7f8c8d;
+			font-size: 14px;
+			line-height: 1.5;
+			margin: 0;
+		}
+		
+		.gift-shop-header {
+			background: linear-gradient(135deg, #39706a, #2d5a55);
+			color: white;
+			padding: 60px 0;
+			text-align: center;
+		}
+		
+		.gift-shop-header h1 {
+			font-family: 'Dancing Script', cursive;
+			font-size: 3.5rem;
+			margin-bottom: 15px;
+			color: white !important;
+		}
+		
+		.gift-shop-header p {
+			font-size: 1.2rem;
+			opacity: 0.9;
+		}
+		
+		#gift-shop-loading {
+			text-align: center;
+			padding: 60px 0;
+			color: #7f8c8d;
+		}
+		
+		.modal-content {
+			border-radius: 15px;
+			overflow: hidden;
+		}
+		
+		.modal-body img {
+			width: 100%;
+			height: auto;
+			border-radius: 10px;
+		}
+		
+		/* Remove space between navbar and header */
+		#content {
+			margin-top: 0 !important;
+			padding-top: 0 !important;
+		}
+		
+		.content-wrap {
+			padding-top: 0 !important;
+			margin-top: 0 !important;
+		}
+	</style>
+
+	<!-- Document Title -->
+	<title>Gift Shop | Das House - Restaurant & Café</title>
+
+</head>
+
+<body class="stretched">
+
+	<div class="body-overlay"></div>
+
+	<!-- Document Wrapper -->
+	<div id="wrapper" class="clearfix">
+
+		<!-- Header -->
+		<header id="header" class="dark" data-sticky-class="dark-color" data-sticky-shrink-offset="0">
+			<div id="header-wrap">
+				<div class="container">
+					<div class="header-row">
+
+						<!-- Logo -->
+						<div id="logo">
+							<a href="index.html" class="standard-logo" data-dark-logo="demos/burger/images/logo-hakane3.png"><img src="demos/burger/images/logo-hakane3.png" alt="Das House Logo"></a>
+							<a href="index.html" class="retina-logo" data-dark-logo="demos/burger/images/logo-hakane3.png"><img src="demos/burger/images/logo-hakane3.png" alt="Das House Logo"></a>
+						</div><!-- #logo end -->
+
+						<div id="primary-menu-trigger">
+							<svg class="svg-trigger" viewBox="0 0 100 100"><path d="m 30,33 h 40 c 3.722839,0 7.5,3.126468 7.5,8.578427 0,5.451959 -2.727029,8.421573 -7.5,8.421573 h -20"></path><path d="m 30,50 h 40"></path><path d="m 70,67 h -40 c 0,0 -7.5,-0.802118 -7.5,-8.365747 0,-7.563629 7.5,-8.634253 7.5,-8.634253 h 20"></path></svg>
+						</div>
+
+						<!-- Primary Navigation -->
+						<nav class="primary-menu">
+							<ul class="menu-container">
+								<li class="menu-item"><a class="menu-link" href="index.html"><div>Home</div></a></li>
+								<li class="menu-item"><a class="menu-link" href="index.html#story"><div>Story</div></a></li>
+								<li class="menu-item"><a class="menu-link" href="index.html#menu"><div>Menu</div></a></li>
+								<li class="current menu-item"><a class="menu-link" href="gift-shop.html"><div>Gift Shop</div></a></li>
+								<li class="menu-item"><a class="menu-link" href="index.html#contact"><div>Contact</div></a></li>
+								<li class="noborder menu-item"><a class="menu-link" href="tel:+4367763423881"><div>+43 677 634 238 81</div></a></li>
+							</ul>
+						</nav><!-- #primary-menu end -->
+
+					</div>
+				</div>
+			</div>
+			<div class="header-wrap-clone"></div>
+		</header><!-- #header end -->
+
+		<!-- Content -->
+		<section id="content">
+			<div class="content-wrap" style="padding-top: 0;">
+
+				<!-- Gift Shop Header -->
+				<div class="gift-shop-header">
+					<div class="container">
+						<h1 data-aos="fade-up" style="color: white !important;">Das House Gift Shop</h1>
+						<p data-aos="fade-up" data-aos-delay="200">Take a piece of Das House home with you</p>
+					</div>
+				</div>
+
+				<!-- Gift Shop Gallery -->
+				<div class="section py-5" style="background-color: #f8f9fa;">
+					<div class="container">
+						
+						<!-- Loading State -->
+						<div id="gift-shop-loading">
+							<i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+							<p>Loading our amazing merchandise...</p>
+						</div>
+						
+						<!-- Error State -->
+						<div id="gift-shop-error" style="display: none;"></div>
+						
+						<!-- Gift Shop Items -->
+						<div id="gift-shop-gallery" style="display: none;">
+							<!-- Items will be loaded dynamically -->
+						</div>
+						
+						<!-- Info Section -->
+						<div class="row justify-content-center mt-5" data-aos="fade-up">
+							<div class="col-lg-8 text-center">
+								<div class="card border-0 shadow-sm">
+									<div class="card-body p-4">
+										<i class="fas fa-info-circle fa-2x text-primary mb-3"></i>
+										<h4 class="mb-3">About Our Merchandise</h4>
+										<p class="text-muted mb-0">
+											All our merchandise is carefully selected and designed to reflect the spirit of Das House. 
+											From cozy t-shirts to beautiful mugs and unique coasters, each item helps support our mission 
+											of caring for cats and creating a warm community space.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+					</div>
+				</div>
+
+			</div>
+		</section><!-- #content end -->
+
+		<!-- Footer -->
+		<footer id="footer" class="dark noborder pt-3" style="background-image: url('demos/burger/images/others/footer.jpg');" data-top-bottom="background-position:100% -300px" data-bottom-top="background-position: 100% 300px">
+			
+			<!-- Copyrights -->
+			<div id="copyrights">
+				<div class="container">
+
+					<div class="row col-mb-30">
+						<div class="col-md-6 text-center text-md-start">
+							Copyrights &copy; 2024 All Rights Reserved by Dashouse Inc.<br>
+						</div>
+
+						<div class="col-md-6 text-center text-md-end">
+							<div class="d-flex justify-content-center justify-content-md-end">
+								<a href="https://www.instagram.com/dashousevienna" class="social-icon si-small si-colored nobottommargin si-instagram">
+									<i class="icon-instagram"></i>
+									<i class="icon-instagram"></i>
+								</a>
+
+								<a href="https://www.tiktok.com/@dashousevienna" class="social-icon si-small si-colored nobottommargin si-tiktok">
+									<i class="icon-tiktok"></i>
+									<i class="icon-tiktok"></i>
+								</a>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</div><!-- #copyrights end -->
+		</footer><!-- #footer end -->
+
+	</div><!-- #wrapper end -->
+
+	<!-- Gift Item Modal -->
+	<div class="modal fade" id="giftModal" tabindex="-1" aria-labelledby="giftModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header border-0">
+					<h5 class="modal-title" id="giftModalTitle">Gift Item</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body text-center">
+					<img id="giftModalImage" src="" alt="" class="img-fluid mb-3">
+					<p id="giftModalDescription" class="text-muted"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Go To Top -->
+	<div id="gotoTop" class="icon-angle-up"></div>
+
+	<!-- JavaScripts -->
+	<script src="js/jquery.js"></script>
+	<script src="js/plugins.min.js"></script>
+	<script src="demos/burger/js/hover-animate.js"></script>
+
+	<!-- AOS Animation Library -->
+	<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+	<!-- Footer Scripts -->
+	<script src="js/functions.js"></script>
+	<script src="js/das-house-gift-shop.js"></script>
+	
+	<script>
+		// Initialize AOS animations
+		AOS.init({
+			duration: 800,
+			once: true,
+			offset: 100
+		});
+	</script>
+
+</body>
+</html>

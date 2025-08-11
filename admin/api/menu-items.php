@@ -52,7 +52,10 @@ try {
             
         case 'POST':
             // Add new menu item (admin only)
-            if (!isset($_POST['name']) || !isset($_POST['price']) || !isset($_POST['category_id'])) {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $data = $input ?: $_POST; // Fallback to $_POST if not JSON
+            
+            if (!isset($data['name']) || !isset($data['price']) || !isset($data['category_id'])) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -62,17 +65,17 @@ try {
             }
             
             $menu_item = [
-                'category_id' => $_POST['category_id'],
-                'name' => $_POST['name'],
-                'description' => $_POST['description'] ?? '',
-                'price' => $_POST['price'],
-                'image_url' => $_POST['image_url'] ?? '',
-                'is_vegetarian' => $_POST['is_vegetarian'] ?? false,
-                'is_vegan' => $_POST['is_vegan'] ?? false,
-                'is_gluten_free' => $_POST['is_gluten_free'] ?? false,
-                'allergens' => $_POST['allergens'] ?? '',
-                'sort_order' => $_POST['sort_order'] ?? 0,
-                'is_active' => $_POST['is_active'] ?? true
+                'category_id' => $data['category_id'],
+                'name' => $data['name'],
+                'description' => $data['description'] ?? '',
+                'price' => $data['price'],
+                'image_url' => $data['image_url'] ?? '',
+                'is_vegetarian' => $data['is_vegetarian'] ?? false,
+                'is_vegan' => $data['is_vegan'] ?? false,
+                'is_gluten_free' => $data['is_gluten_free'] ?? false,
+                'allergens' => $data['allergens'] ?? '',
+                'sort_order' => $data['sort_order'] ?? 0,
+                'is_active' => $data['is_active'] ?? true
             ];
             
             $result = $db->insert('menu_items', $menu_item);
@@ -94,9 +97,13 @@ try {
             
         case 'PUT':
             // Update menu item (admin only)
-            parse_str(file_get_contents("php://input"), $_PUT);
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (!$input) {
+                parse_str(file_get_contents("php://input"), $_PUT);
+                $input = $_PUT;
+            }
             
-            if (!isset($_PUT['id'])) {
+            if (!isset($input['id'])) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -109,8 +116,8 @@ try {
             $allowed_fields = ['name', 'description', 'price', 'image_url', 'is_vegetarian', 'is_vegan', 'is_gluten_free', 'allergens', 'sort_order', 'is_active', 'category_id'];
             
             foreach ($allowed_fields as $field) {
-                if (isset($_PUT[$field])) {
-                    $update_data[$field] = $_PUT[$field];
+                if (isset($input[$field])) {
+                    $update_data[$field] = $input[$field];
                 }
             }
             
@@ -123,7 +130,7 @@ try {
                 break;
             }
             
-            $result = $db->update('menu_items', $update_data, 'id = :id', ['id' => $_PUT['id']]);
+            $result = $db->update('menu_items', $update_data, 'id = :id', ['id' => $input['id']]);
             
             if ($result !== false) {
                 echo json_encode([
@@ -142,9 +149,13 @@ try {
             
         case 'DELETE':
             // Delete menu item (admin only)
-            parse_str(file_get_contents("php://input"), $_DELETE);
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (!$input) {
+                parse_str(file_get_contents("php://input"), $_DELETE);
+                $input = $_DELETE;
+            }
             
-            if (!isset($_DELETE['id'])) {
+            if (!isset($input['id'])) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -153,7 +164,7 @@ try {
                 break;
             }
             
-            $result = $db->delete('menu_items', 'id = :id', ['id' => $_DELETE['id']]);
+            $result = $db->delete('menu_items', 'id = :id', ['id' => $input['id']]);
             
             if ($result !== false) {
                 echo json_encode([

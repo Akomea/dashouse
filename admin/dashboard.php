@@ -131,6 +131,9 @@ if (isset($_GET['logout'])) {
                         <a class="nav-link" href="photo-manager.php">
                             <i class="fas fa-images me-2"></i>Photo Manager
                         </a>
+                        <a class="nav-link" href="gift-shop-manager.php">
+                            <i class="fas fa-gifts me-2"></i>Gift Shop Manager
+                        </a>
                         <a class="nav-link" href="settings.php">
                             <i class="fas fa-cog me-2"></i>Settings
                         </a>
@@ -201,6 +204,14 @@ if (isset($_GET['logout'])) {
                                 <h4>Manage Categories</h4>
                                 <p class="mb-3">Organize your menu with categories and subcategories</p>
                                 <a href="category-manager.php" class="btn btn-light">Manage Categories</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card menu-card text-center p-4">
+                                <i class="fas fa-gifts card-icon"></i>
+                                <h4>Gift Shop Manager</h4>
+                                <p class="mb-3">Add and manage photos of your merchandise and products</p>
+                                <a href="gift-shop-manager.php" class="btn btn-light">Manage Gift Shop</a>
                             </div>
                         </div>
                     </div>

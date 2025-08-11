@@ -126,6 +126,9 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'change_password')
                         <a class="nav-link" href="photo-manager.php">
                             <i class="fas fa-images me-2"></i>Photo Manager
                         </a>
+                        <a class="nav-link" href="gift-shop-manager.php">
+                            <i class="fas fa-gifts me-2"></i>Gift Shop Manager
+                        </a>
                         <a class="nav-link active" href="settings.php">
                             <i class="fas fa-cog me-2"></i>Settings
                         </a>
