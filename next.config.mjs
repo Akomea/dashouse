@@ -6,6 +6,12 @@ const nextConfig = {
       { protocol: "https", hostname: "lvatvujwtyqwdsbqxjvm.supabase.co" }
     ]
   },
+  async redirects() {
+    return [
+      { source: "/gift-shop.html", destination: "/gift-shop", permanent: true },
+      { source: "/index.html", destination: "/", permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       { source: "/favicon.ico", destination: "/demos/burger/images/logo-hakane3.png" },
@@ -14,6 +20,8 @@ const nextConfig = {
       { source: "/admin/api/categories.php", destination: "/api/categories" },
       { source: "/admin/api/business-info.php", destination: "/api/business-info" },
       { source: "/admin/api/gift-shop.php", destination: "/api/gift-shop" },
+      // Legacy PHP stylesheet (no PHP on Vercel) → static CSS
+      { source: "/css/colors.php", destination: "/css/colors.css" },
     ];
   },
 };
