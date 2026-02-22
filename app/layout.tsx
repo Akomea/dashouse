@@ -7,6 +7,7 @@ import { GotoTop } from "@/components/goto-top";
 export const metadata: Metadata = {
   title: "Das House | Restaurant & Café",
   description: "Das House - Purr-fect Brews & Bites! Coffee, cocktails, and adorable cats.",
+  icons: { icon: "/demos/burger/images/logo-hakane3.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
