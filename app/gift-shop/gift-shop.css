@@ -1,0 +1,112 @@
+/* Gift shop page styles - match old gift-shop.html */
+.gift-item-card {
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.gift-item-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.gift-image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.gift-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.gift-item-card:hover .gift-image {
+  transform: scale(1.05);
+}
+
+.gift-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gift-item-card:hover .gift-overlay {
+  opacity: 1;
+}
+
+.gift-overlay i {
+  color: white;
+  font-size: 2rem;
+}
+
+.gift-content {
+  padding: 20px;
+}
+
+.gift-title {
+  font-family: "Dosis", sans-serif;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.gift-description {
+  color: #7f8c8d;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.gift-shop-header {
+  background: linear-gradient(135deg, #39706a, #2d5a55);
+  color: white;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.gift-shop-header h1 {
+  font-family: "Dancing Script", cursive;
+  font-size: 3.5rem;
+  margin-bottom: 15px;
+  color: white !important;
+}
+
+.gift-shop-header p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+#gift-shop-loading {
+  text-align: center;
+  padding: 60px 0;
+  color: #7f8c8d;
+}
+
+.gift-shop-page #content {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.gift-shop-page .content-wrap {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}

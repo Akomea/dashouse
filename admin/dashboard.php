@@ -7,6 +7,8 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
+require_once 'includes/admin-navigation.php';
+
 // Handle logout
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -111,40 +113,7 @@ if (isset($_GET['logout'])) {
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
-                <div class="sidebar p-3">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-cat fa-2x mb-2"></i>
-                        <h5>Das House</h5>
-                        <small class="text-white-50">Admin Panel</small>
-                    </div>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link active" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                        <a class="nav-link" href="menu-manager.php">
-                            <i class="fas fa-utensils me-2"></i>Menu Manager
-                        </a>
-                        <a class="nav-link" href="category-manager.php">
-                            <i class="fas fa-tags me-2"></i>Category Manager
-                        </a>
-                        <a class="nav-link" href="photo-manager.php">
-                            <i class="fas fa-images me-2"></i>Photo Manager
-                        </a>
-                        <a class="nav-link" href="gift-shop-manager.php">
-                            <i class="fas fa-gifts me-2"></i>Gift Shop Manager
-                        </a>
-                        <a class="nav-link" href="settings.php">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </nav>
-                    
-                    <div class="mt-auto pt-5">
-                        <a href="?logout=1" class="btn logout-btn w-100">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a>
-                    </div>
-                </div>
+                <?php echo renderAdminSidebar('dashboard.php'); ?>
             </div>
             
             <!-- Main Content -->
@@ -212,6 +181,30 @@ if (isset($_GET['logout'])) {
                                 <h4>Gift Shop Manager</h4>
                                 <p class="mb-3">Add and manage photos of your merchandise and products</p>
                                 <a href="gift-shop-manager.php" class="btn btn-light">Manage Gift Shop</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card photo-card text-center p-4">
+                                <i class="fas fa-building card-icon"></i>
+                                <h4>Business Information</h4>
+                                <p class="mb-3">Update contact details, address, and operating hours</p>
+                                <a href="business-info-manager.php" class="btn btn-light">Manage Business Info</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card stats-card text-center p-4">
+                                <i class="fas fa-database card-icon"></i>
+                                <h4>Setup Business Info</h4>
+                                <p class="mb-3">Initialize the business information system</p>
+                                <a href="setup-business-info.php" class="btn btn-light">Setup System</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card menu-card text-center p-4">
+                                <i class="fas fa-code card-icon"></i>
+                                <h4>API Demo</h4>
+                                <p class="mb-3">Test and explore the business info API</p>
+                                <a href="api-demo.html" class="btn btn-light">View API Demo</a>
                             </div>
                         </div>
                     </div>

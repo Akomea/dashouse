@@ -13,7 +13,7 @@ define('SUPABASE_DB_USER', 'postgres'); // Default database user
 define('SUPABASE_DB_PASSWORD', 'slhAvH0Qyx1R4ifB'); // Your database password
 
 // Optional: Environment detection
-define('IS_DEVELOPMENT', false); // Set to false in production
+define('IS_DEVELOPMENT', true); // Set to false in production
 
 // Supabase API endpoints
 define('SUPABASE_AUTH_ENDPOINT', SUPABASE_URL . '/auth/v1');

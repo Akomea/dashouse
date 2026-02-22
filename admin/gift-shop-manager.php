@@ -9,55 +9,87 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once 'config/supabase.php';
 require_once 'includes/SupabaseStorage.php';
+require_once 'includes/SupabaseDB.php';
+require_once 'includes/EgressOptimizer.php';
+require_once 'includes/admin-navigation.php';
 
-/**
- * Make a REST API call to Supabase
- */
-function supabaseAPICall($endpoint, $method = 'GET', $data = null, $queryParams = null) {
-    $url = SUPABASE_URL . '/rest/v1/' . $endpoint;
+// Use optimized SupabaseDB class
+$db = new SupabaseDB();
+$optimizer = new EgressOptimizer();
+
+// Gift shop cache (10 minutes for admin)
+$giftShopCache = '/tmp/gift_shop_admin_cache.json';
+$cacheExpiry = 600; // 10 minutes
+
+function getCachedGiftShopData() {
+    global $giftShopCache, $cacheExpiry;
     
-    if ($queryParams) {
-        $url .= '?' . http_build_query($queryParams);
+    if (!file_exists($giftShopCache)) {
+        return null;
     }
     
-    $headers = [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . SUPABASE_SERVICE_ROLE_KEY, // Use service role for admin operations
-        'apikey: ' . SUPABASE_SERVICE_ROLE_KEY
+    $cacheData = json_decode(file_get_contents($giftShopCache), true);
+    if (!$cacheData || !isset($cacheData['timestamp']) || !isset($cacheData['data'])) {
+        return null;
+    }
+    
+    if (time() - $cacheData['timestamp'] > $cacheExpiry) {
+        unlink($giftShopCache);
+        return null;
+    }
+    
+    error_log("Gift Shop Manager: Using cached data");
+    return $cacheData['data'];
+}
+
+function setCachedGiftShopData($data) {
+    global $giftShopCache;
+    
+    $cacheData = [
+        'timestamp' => time(),
+        'data' => $data
     ];
     
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    
-    if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    }
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    
-    if ($curlError) {
-        error_log("cURL error in gift-shop-manager: " . $curlError);
-        return false;
-    }
-    
-    if ($httpCode >= 200 && $httpCode < 300) {
-        return json_decode($response, true);
-    } else {
-        error_log("Supabase API error in gift-shop-manager: HTTP $httpCode - $response");
-        return false;
+    file_put_contents($giftShopCache, json_encode($cacheData));
+    error_log("Gift Shop Manager: Cached " . count($data) . " items");
+}
+
+function clearGiftShopCache() {
+    global $giftShopCache;
+    if (file_exists($giftShopCache)) {
+        unlink($giftShopCache);
+        // Also clear the API cache
+        if (file_exists('/tmp/gift_shop_cache.json')) {
+            unlink('/tmp/gift_shop_cache.json');
+        }
+        error_log("Gift Shop Manager: All caches cleared");
     }
 }
 
-// Load gift shop data from Supabase
-$gift_shop_data = supabaseAPICall('gift_shop_items', 'GET', null, ['order' => 'sort_order,name']) ?: [];
+// Load gift shop data from cache or Supabase
+$gift_shop_data = getCachedGiftShopData();
+
+if ($gift_shop_data === null) {
+    // Cache miss - fetch with optimized query
+    $queryParams = [
+        'order' => 'sort_order,name',
+        'select' => 'id,name,description,image_url,filename,original_name,active,sort_order,created_at'
+    ];
+    
+    if ($optimizer->shouldMakeRequest('gift_shop_items', 'GET', $queryParams)) {
+        $gift_shop_data = $db->apiCall('gift_shop_items', 'GET', null, $queryParams) ?: [];
+        
+        if ($gift_shop_data !== false) {
+            $optimizer->logRequest('gift_shop_items', 'GET', $queryParams, strlen(json_encode($gift_shop_data)));
+            setCachedGiftShopData($gift_shop_data);
+        }
+    } else {
+        $gift_shop_data = [];
+    }
+} else {
+    // Ensure it's an array
+    $gift_shop_data = $gift_shop_data ?: [];
+}
 
 // Handle file uploads
 if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
@@ -83,7 +115,12 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'upload') {
                 'sort_order' => count($gift_shop_data)
             ];
             
-            $result = supabaseAPICall('gift_shop_items', 'POST', $new_item);
+            $result = $db->apiCall('gift_shop_items', 'POST', $new_item);
+            
+            // Clear cache after successful POST
+            if ($result !== false) {
+                clearGiftShopCache();
+            }
             
             if ($result !== false) {
                 header('Location: gift-shop-manager.php?success=photo_uploaded');
@@ -111,7 +148,12 @@ if ($_POST && isset($_POST['action'])) {
         case 'delete':
             $item_id = $_POST['item_id'];
             $queryParams = ['id' => 'eq.' . $item_id];
-            $result = supabaseAPICall('gift_shop_items', 'DELETE', null, $queryParams);
+            $result = $db->apiCall('gift_shop_items', 'DELETE', null, $queryParams);
+            
+            // Clear cache after successful DELETE
+            if ($result !== false) {
+                clearGiftShopCache();
+            }
             
             if ($result !== false) {
                 $success = true;
@@ -136,7 +178,12 @@ if ($_POST && isset($_POST['action'])) {
                 $new_active_state = !$current_item['active'];
                 $queryParams = ['id' => 'eq.' . $item_id];
                 $update_data = ['active' => $new_active_state];
-                $result = supabaseAPICall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+                $result = $db->apiCall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+                
+                // Clear cache after successful PATCH
+                if ($result !== false) {
+                    clearGiftShopCache();
+                }
                 
                 if ($result !== false) {
                     $success = true;
@@ -158,7 +205,12 @@ if ($_POST && isset($_POST['action'])) {
                 'name' => $name,
                 'description' => $description
             ];
-            $result = supabaseAPICall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+            $result = $db->apiCall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+            
+            // Clear cache after successful PATCH
+            if ($result !== false) {
+                clearGiftShopCache();
+            }
             
             if ($result !== false) {
                 $success = true;
@@ -313,40 +365,7 @@ if ($_POST && isset($_POST['action'])) {
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
-                <div class="sidebar p-3">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-cat fa-2x mb-2"></i>
-                        <h5>Das House</h5>
-                        <small class="text-white-50">Admin Panel</small>
-                    </div>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                        <a class="nav-link" href="menu-manager.php">
-                            <i class="fas fa-utensils me-2"></i>Menu Manager
-                        </a>
-                        <a class="nav-link" href="category-manager.php">
-                            <i class="fas fa-tags me-2"></i>Category Manager
-                        </a>
-                        <a class="nav-link" href="photo-manager.php">
-                            <i class="fas fa-images me-2"></i>Photo Manager
-                        </a>
-                        <a class="nav-link active" href="gift-shop-manager.php">
-                            <i class="fas fa-gifts me-2"></i>Gift Shop Manager
-                        </a>
-                        <a class="nav-link" href="settings.php">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </nav>
-                    
-                    <div class="mt-auto pt-5">
-                        <a href="dashboard.php?logout=1" class="btn btn-danger w-100">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a>
-                    </div>
-                </div>
+                <?php echo renderAdminSidebar('gift-shop-manager.php'); ?>
             </div>
             
             <!-- Main Content -->

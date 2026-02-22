@@ -7,6 +7,8 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
+require_once 'includes/admin-navigation.php';
+
 // Handle password change
 if ($_POST && isset($_POST['action']) && $_POST['action'] === 'change_password') {
     $current_password = $_POST['current_password'];
@@ -109,37 +111,7 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'change_password')
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
-                <div class="sidebar p-3">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-cat fa-2x mb-2"></i>
-                        <h5>Das House</h5>
-                        <small class="text-white-50">Admin Panel</small>
-                    </div>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                        <a class="nav-link" href="menu-manager.php">
-                            <i class="fas fa-utensils me-2"></i>Menu Manager
-                        </a>
-                        <a class="nav-link" href="photo-manager.php">
-                            <i class="fas fa-images me-2"></i>Photo Manager
-                        </a>
-                        <a class="nav-link" href="gift-shop-manager.php">
-                            <i class="fas fa-gifts me-2"></i>Gift Shop Manager
-                        </a>
-                        <a class="nav-link active" href="settings.php">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </nav>
-                    
-                    <div class="mt-auto pt-5">
-                        <a href="dashboard.php?logout=1" class="btn btn-danger w-100">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a>
-                    </div>
-                </div>
+                <?php echo renderAdminSidebar('settings.php'); ?>
             </div>
             
             <!-- Main Content -->

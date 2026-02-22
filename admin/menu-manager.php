@@ -7,8 +7,22 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
-// Categories will be loaded via JavaScript API calls
-$categories = [];
+// Load categories from database
+require_once 'includes/SupabaseDB.php';
+require_once 'includes/admin-navigation.php';
+$db = new SupabaseDB();
+
+try {
+    $categories_sql = "SELECT * FROM categories WHERE is_active = true ORDER BY sort_order, name";
+    $categories = $db->fetchAll($categories_sql);
+    
+    if ($categories === false) {
+        $categories = [];
+    }
+} catch (Exception $e) {
+    $categories = [];
+    error_log("Error loading categories: " . $e->getMessage());
+}
 
 // Get dietary options
 $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal', 'Kosher'];
@@ -122,40 +136,7 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
-                <div class="sidebar p-3">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-cat fa-2x mb-2"></i>
-                        <h5>Das House</h5>
-                        <small class="text-white-50">Admin Panel</small>
-                    </div>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                        <a class="nav-link active" href="menu-manager.php">
-                            <i class="fas fa-utensils me-2"></i>Menu Manager
-                        </a>
-                        <a class="nav-link" href="category-manager.php">
-                            <i class="fas fa-tags me-2"></i>Category Manager
-                        </a>
-                        <a class="nav-link" href="photo-manager.php">
-                            <i class="fas fa-images me-2"></i>Photo Manager
-                        </a>
-                        <a class="nav-link" href="gift-shop-manager.php">
-                            <i class="fas fa-gifts me-2"></i>Gift Shop Manager
-                        </a>
-                        <a class="nav-link" href="settings.php">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </nav>
-                    
-                    <div class="mt-auto pt-5">
-                        <a href="dashboard.php?logout=1" class="btn btn-danger w-100">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a>
-                    </div>
-                </div>
+                <?php echo renderAdminSidebar('menu-manager.php'); ?>
             </div>
             
             <!-- Main Content -->
@@ -367,7 +348,6 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
             }
             
             init() {
-                this.loadCategories();
                 this.loadMenuItems();
                 this.setupEventListeners();
             }
@@ -378,41 +358,6 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
                 
                 // Edit item form
                 document.getElementById('editItemForm').addEventListener('submit', (e) => this.handleEditItem(e));
-            }
-            
-            async loadCategories() {
-                try {
-                    const response = await fetch('api/categories.php?is_active=1');
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        this.populateCategorySelects(result.data);
-                    } else {
-                        console.error('Error loading categories:', result.error);
-                    }
-                } catch (error) {
-                    console.error('Error loading categories:', error);
-                }
-            }
-            
-            populateCategorySelects(categories) {
-                const addSelect = document.getElementById('category_id');
-                const editSelect = document.getElementById('edit_category_id');
-                
-                // Clear existing options except the first placeholder
-                [addSelect, editSelect].forEach(select => {
-                    while (select.children.length > 1) {
-                        select.removeChild(select.lastChild);
-                    }
-                });
-                
-                // Add category options
-                categories.forEach(category => {
-                    const option1 = new Option(category.name, category.id);
-                    const option2 = new Option(category.name, category.id);
-                    addSelect.add(option1);
-                    editSelect.add(option2);
-                });
             }
             
             async loadMenuItems() {
@@ -526,15 +471,15 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
                 try {
                     const formData = new FormData(form);
                     
-                    // Convert checkbox values to booleans (explicitly handle unchecked = false)
+                    // Convert checkbox values to booleans
                     const data = {
                         name: formData.get('name'),
                         price: parseFloat(formData.get('price')),
                         category_id: formData.get('category_id'),
                         description: formData.get('description') || '',
-                        is_vegetarian: formData.has('is_vegetarian') ? formData.get('is_vegetarian') === '1' : false,
-                        is_vegan: formData.has('is_vegan') ? formData.get('is_vegan') === '1' : false,
-                        is_gluten_free: formData.has('is_gluten_free') ? formData.get('is_gluten_free') === '1' : false,
+                        is_vegetarian: formData.get('is_vegetarian') === '1',
+                        is_vegan: formData.get('is_vegan') === '1',
+                        is_gluten_free: formData.get('is_gluten_free') === '1',
                         allergens: formData.get('allergens') || '',
                         sort_order: parseInt(formData.get('sort_order')) || 0,
                         is_active: true
@@ -582,16 +527,16 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
                 try {
                     const formData = new FormData(form);
                     
-                    // Convert checkbox values to booleans (explicitly handle unchecked = false)
+                    // Convert checkbox values to booleans
                     const data = {
                         id: formData.get('id'),
                         name: formData.get('name'),
                         price: parseFloat(formData.get('price')),
                         category_id: formData.get('category_id'),
                         description: formData.get('description') || '',
-                        is_vegetarian: formData.has('is_vegetarian') ? formData.get('is_vegetarian') === '1' : false,
-                        is_vegan: formData.has('is_vegan') ? formData.get('is_vegan') === '1' : false,
-                        is_gluten_free: formData.has('is_gluten_free') ? formData.get('is_gluten_free') === '1' : false,
+                        is_vegetarian: formData.get('is_vegetarian') === '1',
+                        is_vegan: formData.get('is_vegan') === '1',
+                        is_gluten_free: formData.get('is_gluten_free') === '1',
                         allergens: formData.get('allergens') || '',
                         sort_order: parseInt(formData.get('sort_order')) || 0
                     };
@@ -601,7 +546,7 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(data)
+                        body: new URLSearchParams(data)
                     });
                     
                     const result = await response.json();
@@ -658,7 +603,7 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({
+                        body: new URLSearchParams({
                             id,
                             is_active: !currentStatus
                         })
@@ -678,40 +623,54 @@ $dietary_options = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Halal',
                 }
             }
             
-            async editItem(id) {
-                try {
-                    // Fetch fresh data from API instead of parsing DOM
-                    const response = await fetch(`api/menu-items.php?id=${id}`);
-                    const result = await response.json();
-                    
-                    if (!result.success || !result.data || result.data.length === 0) {
-                        this.showAlert('Failed to load menu item data', 'danger');
-                        return;
-                    }
-                    
-                    const item = result.data[0];
-                    
-                    // Set form values with fresh data
-                    document.getElementById('edit_id').value = item.id;
-                    document.getElementById('edit_name').value = item.name || '';
-                    document.getElementById('edit_description').value = item.description || '';
-                    document.getElementById('edit_price').value = item.price || '';
-                    document.getElementById('edit_category_id').value = item.category_id || '';
-                    document.getElementById('edit_allergens').value = item.allergens || '';
-                    document.getElementById('edit_sort_order').value = item.sort_order || 0;
-                    
-                    // Set dietary checkboxes based on actual boolean values
-                    document.getElementById('edit_is_vegetarian').checked = Boolean(item.is_vegetarian);
-                    document.getElementById('edit_is_vegan').checked = Boolean(item.is_vegan);
-                    document.getElementById('edit_is_gluten_free').checked = Boolean(item.is_gluten_free);
-                    
-                    // Show modal
-                    new bootstrap.Modal(document.getElementById('editItemModal')).show();
-                    
-                } catch (error) {
-                    console.error('Error loading menu item:', error);
-                    this.showAlert('Failed to load menu item. Please try again.', 'danger');
+            editItem(id) {
+                // Find the item in the current display
+                const itemElement = document.querySelector(`[data-id="${id}"]`);
+                if (!itemElement) return;
+                
+                // Extract data from the DOM
+                const name = itemElement.querySelector('h6').textContent;
+                const description = itemElement.querySelector('p').textContent;
+                const price = itemElement.querySelector('.text-success').textContent.replace('€', '');
+                const categoryName = itemElement.closest('.card').querySelector('.card-header h5').textContent.replace(/^.*?tag me-2\s*/, '');
+                
+                // Find category ID by name
+                const categorySelect = document.getElementById('edit_category_id');
+                const categoryOption = Array.from(categorySelect.options).find(option => option.textContent === categoryName);
+                const categoryId = categoryOption ? categoryOption.value : '';
+                
+                // Set form values
+                document.getElementById('edit_id').value = id;
+                document.getElementById('edit_name').value = name;
+                document.getElementById('edit_description').value = description;
+                document.getElementById('edit_price').value = price;
+                document.getElementById('edit_category_id').value = categoryId;
+                
+                // Reset dietary checkboxes
+                document.getElementById('edit_is_vegetarian').checked = false;
+                document.getElementById('edit_is_vegan').checked = false;
+                document.getElementById('edit_is_gluten_free').checked = false;
+                
+                // Check dietary options based on badges
+                const badges = itemElement.querySelectorAll('.dietary-badge');
+                badges.forEach(badge => {
+                    const text = badge.textContent;
+                    if (text === 'Vegetarian') document.getElementById('edit_is_vegetarian').checked = true;
+                    if (text === 'Vegan') document.getElementById('edit_is_vegan').checked = true;
+                    if (text === 'Gluten-Free') document.getElementById('edit_is_gluten_free').checked = true;
+                });
+                
+                // Set allergens
+                const allergensElement = itemElement.querySelector('.text-danger');
+                if (allergensElement) {
+                    const allergens = allergensElement.textContent.replace(/^.*?triangle me-1\s*/, '');
+                    document.getElementById('edit_allergens').value = allergens;
+                } else {
+                    document.getElementById('edit_allergens').value = '';
                 }
+                
+                // Show modal
+                new bootstrap.Modal(document.getElementById('editItemModal')).show();
             }
             
             showAlert(message, type) {

@@ -1,34 +1,13 @@
-# Dependencies
 node_modules/
-npm-debug.log*
-
-# Environment files
+.next/
+.DS_Store
+out/
 .env
 .env.local
-.env.production
-
-# Logs
+.env.*.local
 *.log
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE files
-.vscode/
-.idea/
-
-# Temporary files
-*.tmp
-*.temp
-
-# Build artifacts
-dist/
-build/
-
-# Package manager files
-package-lock.json
-
-# Test files (if any get re-added)
-*test*.php
-*debug*.php
+# Supabase dump/seed (may contain data; do not commit)
+supabase-public.dump
+supabase-public.sql
+supabase-data-only.sql

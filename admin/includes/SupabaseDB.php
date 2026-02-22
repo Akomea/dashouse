@@ -15,22 +15,47 @@ class SupabaseDB {
             'apikey: ' . $this->supabase_key
         ];
         
-        // Remove direct database connection attempt
-        // $this->connectDirectDB();
+        // Set up error logging to file
+        $logFile = __DIR__ . '/../../php-errors.log';
+        ini_set('error_log', $logFile);
+        ini_set('log_errors', 1);
     }
     
     /**
-     * Make a REST API call to Supabase
+     * Make a REST API call to Supabase with egress optimization
      */
-    public function apiCall($endpoint, $method = 'GET', $data = null) {
+    public function apiCall($endpoint, $method = 'GET', $data = null, $queryParams = []) {
         $url = $this->supabase_url . '/rest/v1/' . $endpoint;
+        
+        // Add query parameters to URL
+        if (!empty($queryParams)) {
+            $queryString = http_build_query($queryParams);
+            $url .= '?' . $queryString;
+        }
+        
+        // Log API calls for monitoring egress usage
+        error_log("Supabase API Call: $method $url");
+        if ($data) {
+            error_log("Request data: " . json_encode($data));
+        }
         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
+        
+        // Add compression to reduce egress
+        $headers = array_merge($this->headers, ['Accept-Encoding: gzip, deflate']);
+        
+        // For PATCH/PUT/POST, request to return the updated representation
+        if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            $headers[] = 'Prefer: return=representation';
+        }
+        
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_ENCODING, '');
+        
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         
         if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
@@ -47,10 +72,40 @@ class SupabaseDB {
             return false;
         }
         
+        error_log("Supabase API Response Code: $httpCode");
+        error_log("Supabase API Response: " . $response);
+        
         if ($httpCode >= 200 && $httpCode < 300) {
+            $responseSize = strlen($response);
+            error_log("Supabase API Response Size: {$responseSize} bytes");
+            
+            // For empty responses (like 204 No Content), treat as success
+            if (empty($response)) {
+                return true;
+            }
+            
             return json_decode($response, true);
         } else {
-            error_log("Supabase API error: HTTP $httpCode - $response");
+            $errorMsg = "Supabase API error: HTTP $httpCode - $response";
+            
+            // Check for common Supabase limit errors
+            if ($httpCode == 429) {
+                $errorMsg .= " (Rate limit exceeded - reduce API call frequency)";
+            } elseif ($httpCode == 402) {
+                $errorMsg .= " (Payment required - egress limit exceeded)";
+            } elseif ($httpCode == 403) {
+                $errorMsg .= " (Forbidden - check API key or egress limits)";
+            } elseif ($httpCode == 0 && $curlError) {
+                $errorMsg .= " (Connection failed - possible network or limit issue)";
+            }
+            
+            error_log($errorMsg);
+            
+            // For egress limit errors, don't retry immediately
+            if ($httpCode == 402 || $httpCode == 403) {
+                sleep(1);
+            }
+            
             return false;
         }
     }

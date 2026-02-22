@@ -5,50 +5,55 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 require_once '../config/supabase.php';
+require_once '../includes/SupabaseDB.php';
+require_once '../includes/EgressOptimizer.php';
 
-/**
- * Make a REST API call to Supabase
- */
-function supabaseAPICall($endpoint, $method = 'GET', $data = null, $queryParams = null) {
-    $url = SUPABASE_URL . '/rest/v1/' . $endpoint;
+// Use optimized SupabaseDB class instead of duplicate function
+$db = new SupabaseDB();
+$optimizer = new EgressOptimizer();
+
+// Simple cache for gift shop data (5 minutes)
+$cacheFile = '/tmp/gift_shop_cache.json';
+$cacheExpiry = 300; // 5 minutes
+
+function getCachedGiftShopData() {
+    global $cacheFile, $cacheExpiry;
     
-    if ($queryParams) {
-        $url .= '?' . http_build_query($queryParams);
+    if (!file_exists($cacheFile)) {
+        return null;
     }
     
-    $headers = [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . SUPABASE_ANON_KEY,
-        'apikey: ' . SUPABASE_ANON_KEY
+    $cacheData = json_decode(file_get_contents($cacheFile), true);
+    if (!$cacheData || !isset($cacheData['timestamp']) || !isset($cacheData['data'])) {
+        return null;
+    }
+    
+    if (time() - $cacheData['timestamp'] > $cacheExpiry) {
+        unlink($cacheFile);
+        return null;
+    }
+    
+    error_log("Gift Shop API: Using cached data");
+    return $cacheData['data'];
+}
+
+function setCachedGiftShopData($data) {
+    global $cacheFile;
+    
+    $cacheData = [
+        'timestamp' => time(),
+        'data' => $data
     ];
     
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    
-    if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    }
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    
-    if ($curlError) {
-        error_log("cURL error in supabaseAPICall: " . $curlError);
-        return false;
-    }
-    
-    if ($httpCode >= 200 && $httpCode < 300) {
-        return json_decode($response, true);
-    } else {
-        error_log("Supabase API error: HTTP $httpCode - $response");
-        return false;
+    file_put_contents($cacheFile, json_encode($cacheData));
+    error_log("Gift Shop API: Cached " . count($data) . " items");
+}
+
+function clearGiftShopCache() {
+    global $cacheFile;
+    if (file_exists($cacheFile)) {
+        unlink($cacheFile);
+        error_log("Gift Shop API: Cache cleared");
     }
 }
 
@@ -60,13 +65,31 @@ try {
             // Get all gift shop items, optionally filter by active status
             $is_active = $_GET['is_active'] ?? null;
             
-            $queryParams = ['order' => 'sort_order,name'];
+            // Try cache first for GET requests
+            $gift_shop_data = getCachedGiftShopData();
             
-            if ($is_active !== null) {
-                $queryParams['active'] = 'eq.' . ($is_active ? 'true' : 'false');
+            if ($gift_shop_data === null) {
+                // Cache miss - fetch from API with optimized query
+                $queryParams = [
+                    'order' => 'sort_order,name',
+                    'select' => 'id,name,description,image_url,active,sort_order,created_at' // Only needed fields
+                ];
+                
+                if ($is_active !== null) {
+                    $queryParams['active'] = 'eq.' . ($is_active ? 'true' : 'false');
+                }
+                
+                if ($optimizer->shouldMakeRequest('gift_shop_items', 'GET', $queryParams)) {
+                    $gift_shop_data = $db->apiCall('gift_shop_items', 'GET', null, $queryParams);
+                    
+                    if ($gift_shop_data !== false) {
+                        $optimizer->logRequest('gift_shop_items', 'GET', $queryParams, strlen(json_encode($gift_shop_data)));
+                        setCachedGiftShopData($gift_shop_data);
+                    }
+                } else {
+                    $gift_shop_data = [];
+                }
             }
-            
-            $gift_shop_data = supabaseAPICall('gift_shop_items', 'GET', null, $queryParams);
             
             if ($gift_shop_data !== false) {
                 echo json_encode([
@@ -107,7 +130,12 @@ try {
                 'sort_order' => (int)($data['sort_order'] ?? 0)
             ];
             
-            $result = supabaseAPICall('gift_shop_items', 'POST', $new_item);
+            $result = $db->apiCall('gift_shop_items', 'POST', $new_item);
+            
+            // Clear cache after successful POST
+            if ($result !== false) {
+                clearGiftShopCache();
+            }
             
             if ($result !== false) {
                 echo json_encode([
@@ -167,7 +195,12 @@ try {
             }
             
             $queryParams = ['id' => 'eq.' . $input['id']];
-            $result = supabaseAPICall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+            $result = $db->apiCall('gift_shop_items', 'PATCH', $update_data, $queryParams);
+            
+            // Clear cache after successful PATCH
+            if ($result !== false) {
+                clearGiftShopCache();
+            }
             
             if ($result !== false) {
                 echo json_encode([
@@ -202,7 +235,12 @@ try {
             }
             
             $queryParams = ['id' => 'eq.' . $input['id']];
-            $result = supabaseAPICall('gift_shop_items', 'DELETE', null, $queryParams);
+            $result = $db->apiCall('gift_shop_items', 'DELETE', null, $queryParams);
+            
+            // Clear cache after successful DELETE
+            if ($result !== false) {
+                clearGiftShopCache();
+            }
             
             if ($result !== false) {
                 echo json_encode([

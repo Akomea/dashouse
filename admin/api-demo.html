@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Info API Demo - Das House Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .demo-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+        .api-response {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .btn-test {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        .btn-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+            color: white;
+        }
+        .status-success { color: #28a745; }
+        .status-error { color: #dc3545; }
+        .status-info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="text-center mb-5">
+                    <h1><i class="fas fa-code me-2"></i>Business Info API Demo</h1>
+                    <p class="text-muted">Test the business information API endpoints</p>
+                </div>
+                
+                <!-- GET Request Demo -->
+                <div class="demo-card p-4">
+                    <h4><i class="fas fa-download me-2"></i>GET Request - Fetch Business Information</h4>
+                    <p class="text-muted">Retrieve current business information from the API</p>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="api-response" id="get-response">
+                                <span class="text-muted">Click "Test GET Request" to see the response...</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-test w-100 mb-3" onclick="testGetRequest()">
+                                <i class="fas fa-play me-2"></i>Test GET Request
+                            </button>
+                            <div class="small text-muted">
+                                <strong>Endpoint:</strong><br>
+                                <code>GET /admin/api/business-info.php</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- POST Request Demo -->
+                <div class="demo-card p-4">
+                    <h4><i class="fas fa-upload me-2"></i>POST Request - Update Business Information</h4>
+                    <p class="text-muted">Update business information via the API</p>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="api-response" id="post-response">
+                                <span class="text-muted">Click "Test POST Request" to see the response...</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-test w-100 mb-3" onclick="testPostRequest()">
+                                <i class="fas fa-play me-2"></i>Test POST Request
+                            </button>
+                            <div class="small text-muted">
+                                <strong>Endpoint:</strong><br>
+                                <code>POST /admin/api/business-info.php</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Frontend Integration Demo -->
+                <div class="demo-card p-4">
+                    <h4><i class="fas fa-globe me-2"></i>Frontend Integration Demo</h4>
+                    <p class="text-muted">See how the API integrates with the frontend website</p>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="api-response" id="frontend-demo">
+                                <div class="mb-3">
+                                    <strong>Business Name:</strong> <span id="demo-business-name">Loading...</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Phone:</strong> <span id="demo-phone">Loading...</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Email:</strong> <span id="demo-email">Loading...</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Address:</strong> <span id="demo-address">Loading...</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Hours:</strong> <span id="demo-hours">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-test w-100 mb-3" onclick="loadFrontendDemo()">
+                                <i class="fas fa-sync me-2"></i>Load Demo Data
+                            </button>
+                            <div class="small text-muted">
+                                This simulates how the frontend website loads and displays business information
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- API Documentation -->
+                <div class="demo-card p-4">
+                    <h4><i class="fas fa-book me-2"></i>API Documentation</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>GET /admin/api/business-info.php</h6>
+                            <ul class="small">
+                                <li>Retrieves current business information</li>
+                                <li>Returns JSON with business details</li>
+                                <li>No authentication required (public endpoint)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>POST/PUT/PATCH /admin/api/business-info.php</h6>
+                            <ul class="small">
+                                <li>Updates business information</li>
+                                <li>Requires JSON payload</li>
+                                <li>Returns success/error message</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Sample Response Format:</h6>
+                        <pre class="small bg-light p-2 rounded"><code>{
+  "success": true,
+  "data": {
+    "business_name": "Das House",
+    "email": "info@dashouse.com",
+    "phone": "(555) 123-4567",
+    "address": "123 Main Street",
+    "city": "Anytown",
+    "state": "CA",
+    "zip_code": "90210",
+    "country": "United States",
+    "monday_open": "09:00",
+    "monday_close": "17:00"
+    // ... more fields
+  }
+}</code></pre>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div class="demo-card p-4">
+                    <h4><i class="fas fa-link me-2"></i>Quick Links</h4>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="business-info-manager.php" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-building me-2"></i>Business Info Manager
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="setup-business-info.php" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-database me-2"></i>Setup System
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="dashboard.php" class="btn btn-outline-info w-100">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function testGetRequest() {
+            const responseDiv = document.getElementById('get-response');
+            responseDiv.innerHTML = '<span class="status-info">Loading...</span>';
+            
+            try {
+                const response = await fetch('business-info.php');
+                const data = await response.json();
+                
+                responseDiv.innerHTML = `
+                    <div class="status-success mb-2">✓ Request successful (HTTP ${response.status})</div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div class="status-error mb-2">✗ Request failed</div>
+                    <div class="text-muted">${error.message}</div>
+                `;
+            }
+        }
+        
+        async function testPostRequest() {
+            const responseDiv = document.getElementById('post-response');
+            responseDiv.innerHTML = '<span class="status-info">Loading...</span>';
+            
+            try {
+                const testData = {
+                    business_name: 'Das House (Test Update)',
+                    phone: '(555) 999-8888',
+                    email: 'test@dashouse.com'
+                };
+                
+                const response = await fetch('business-info.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const data = await response.json();
+                
+                responseDiv.innerHTML = `
+                    <div class="status-success mb-2">✓ Request successful (HTTP ${response.status})</div>
+                    <div class="mb-2"><strong>Sent Data:</strong></div>
+                    <pre class="mb-2">${JSON.stringify(testData, null, 2)}</pre>
+                    <div class="mb-2"><strong>Response:</strong></div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div class="status-error mb-2">✗ Request failed</div>
+                    <div class="text-muted">${error.message}</div>
+                `;
+            }
+        }
+        
+        async function loadFrontendDemo() {
+            const demoDiv = document.getElementById('frontend-demo');
+            
+            try {
+                const response = await fetch('business-info.php');
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const info = data.data;
+                    
+                    document.getElementById('demo-business-name').textContent = info.business_name || 'Not set';
+                    document.getElementById('demo-phone').textContent = info.phone || 'Not set';
+                    document.getElementById('demo-email').textContent = info.email || 'Not set';
+                    
+                    // Format address
+                    let address = '';
+                    if (info.country) address += info.country;
+                    if (info.state) address += address ? `, ${info.state}` : info.state;
+                    if (info.city) address += address ? `, ${info.city}` : info.city;
+                    if (info.address) address += address ? `, ${info.address}` : info.address;
+                    if (info.zip_code) address += `, ${info.zip_code}`;
+                    
+                    document.getElementById('demo-address').textContent = address || 'Not set';
+                    
+                    // Format hours
+                    let hours = '';
+                    if (info.monday_open && info.monday_close) {
+                        hours += `Mon: ${formatTime(info.monday_open)}-${formatTime(info.monday_close)} `;
+                    }
+                    if (info.tuesday_open && info.tuesday_close) {
+                        hours += `Tue: ${formatTime(info.tuesday_open)}-${formatTime(info.tuesday_close)} `;
+                    }
+                    if (info.wednesday_open && info.wednesday_close) {
+                        hours += `Wed: ${formatTime(info.wednesday_open)}-${formatTime(info.wednesday_close)} `;
+                    }
+                    
+                    document.getElementById('demo-hours').textContent = hours || 'Not set';
+                    
+                    demoDiv.innerHTML = `
+                        <div class="status-success mb-2">✓ Data loaded successfully</div>
+                        <div class="mb-3">
+                            <strong>Business Name:</strong> <span id="demo-business-name">${info.business_name || 'Not set'}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Phone:</strong> <span id="demo-phone">${info.phone || 'Not set'}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Email:</strong> <span id="demo-email">${info.email || 'Not set'}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Address:</strong> <span id="demo-address">${address || 'Not set'}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Hours:</strong> <span id="demo-hours">${hours || 'Not set'}</span>
+                        </div>
+                    `;
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                demoDiv.innerHTML = `
+                    <div class="status-error mb-2">✗ Failed to load data</div>
+                    <div class="text-muted">${error.message}</div>
+                `;
+            }
+        }
+        
+        function formatTime(timeString) {
+            if (!timeString) return '';
+            try {
+                const [hours, minutes] = timeString.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'pm' : 'am';
+                const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+                return `${displayHour}:${minutes}${ampm}`;
+            } catch (error) {
+                return timeString;
+            }
+        }
+        
+        // Auto-load frontend demo on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFrontendDemo();
+        });
+    </script>
+</body>
+</html>

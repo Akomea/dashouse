@@ -8,6 +8,8 @@ class DasHouseGiftShop {
         this.loadingElement = null;
         this.errorElement = null;
         this.items = [];
+        this.cacheKey = 'das_house_gift_shop_cache';
+        this.cacheExpiry = 5 * 60 * 1000; // 5 minutes in milliseconds
     }
 
     /**
@@ -35,11 +37,24 @@ class DasHouseGiftShop {
     }
 
     /**
-     * Load gift shop items from the API
+     * Load gift shop items from cache or API
      */
     async loadGiftShopItems() {
+        // Try localStorage cache first
+        const cachedData = this.getCachedData();
+        if (cachedData) {
+            this.items = cachedData;
+            console.log(`Loaded ${this.items.length} gift shop items from cache`);
+            return;
+        }
+        
+        // Cache miss - fetch from API
         try {
-            const response = await fetch('admin/api/gift-shop.php?is_active=1');
+            const response = await fetch('admin/api/gift-shop.php?is_active=1', {
+                headers: {
+                    'Accept-Encoding': 'gzip, deflate' // Request compression
+                }
+            });
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -49,7 +64,9 @@ class DasHouseGiftShop {
             
             if (data.success) {
                 this.items = data.data || [];
-                console.log(`Loaded ${this.items.length} gift shop items`);
+                // Cache the result
+                this.setCachedData(this.items);
+                console.log(`Loaded ${this.items.length} gift shop items from API and cached`);
             } else {
                 throw new Error(data.error || 'Unknown error occurred');
             }
@@ -231,6 +248,52 @@ class DasHouseGiftShop {
                 <p class="text-muted">We're working on adding some amazing merchandise to our gift shop.</p>
             </div>
         `;
+    }
+
+    /**
+     * Get cached gift shop data from localStorage
+     */
+    getCachedData() {
+        try {
+            const cached = localStorage.getItem(this.cacheKey);
+            if (!cached) return null;
+            
+            const data = JSON.parse(cached);
+            const now = Date.now();
+            
+            if (now - data.timestamp > this.cacheExpiry) {
+                localStorage.removeItem(this.cacheKey);
+                return null;
+            }
+            
+            return data.items;
+        } catch (error) {
+            console.warn('Error reading gift shop cache:', error);
+            localStorage.removeItem(this.cacheKey);
+            return null;
+        }
+    }
+    
+    /**
+     * Cache gift shop data in localStorage
+     */
+    setCachedData(items) {
+        try {
+            const data = {
+                timestamp: Date.now(),
+                items: items
+            };
+            localStorage.setItem(this.cacheKey, JSON.stringify(data));
+        } catch (error) {
+            console.warn('Error caching gift shop data:', error);
+        }
+    }
+    
+    /**
+     * Clear cached gift shop data
+     */
+    clearCache() {
+        localStorage.removeItem(this.cacheKey);
     }
 
     /**
