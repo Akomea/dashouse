@@ -6,10 +6,13 @@ const nextConfig = {
       { protocol: "https", hostname: "lvatvujwtyqwdsbqxjvm.supabase.co" }
     ]
   },
-  // Avoid 404 for browser favicon request (no public/favicon.ico)
   async rewrites() {
     return [
       { source: "/favicon.ico", destination: "/demos/burger/images/logo-hakane3.png" },
+      // Legacy PHP API URLs → Next.js API (avoids 500 from PHP/__dirname on Vercel)
+      { source: "/admin/api/menu-items.php", destination: "/api/menu-items" },
+      { source: "/admin/api/categories.php", destination: "/api/categories" },
+      { source: "/admin/api/business-info.php", destination: "/api/business-info" },
     ];
   },
 };
