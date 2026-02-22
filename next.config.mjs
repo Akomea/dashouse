@@ -13,6 +13,7 @@ const nextConfig = {
       { source: "/admin/api/menu-items.php", destination: "/api/menu-items" },
       { source: "/admin/api/categories.php", destination: "/api/categories" },
       { source: "/admin/api/business-info.php", destination: "/api/business-info" },
+      { source: "/admin/api/gift-shop.php", destination: "/api/gift-shop" },
     ];
   },
 };

@@ -50,7 +50,7 @@ class DasHouseGiftShop {
         
         // Cache miss - fetch from API
         try {
-            const response = await fetch('admin/api/gift-shop.php?is_active=1', {
+            const response = await fetch('/admin/api/gift-shop.php?is_active=1', {
                 headers: {
                     'Accept-Encoding': 'gzip, deflate' // Request compression
                 }
