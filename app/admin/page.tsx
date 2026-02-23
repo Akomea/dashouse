@@ -31,23 +31,23 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 480 }}>
+    <div className="admin-login-card">
       <h1>Admin Login</h1>
-      <p className="muted">Simple env-based login migration from PHP admin auth.</p>
-      <form className="card" onSubmit={onSubmit}>
-        <label>
-          Username
-          <input name="username" type="text" required />
-        </label>
-        <label>
-          Password
-          <input name="password" type="password" required />
-        </label>
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
+      <p className="muted">Sign in with your admin credentials.</p>
+      <form onSubmit={onSubmit}>
+        <div className="admin-form-group">
+          <label>Username</label>
+          <input name="username" type="text" required autoComplete="username" />
+        </div>
+        <div className="admin-form-group">
+          <label>Password</label>
+          <input name="password" type="password" required autoComplete="current-password" />
+        </div>
+        <button type="submit" className="admin-btn admin-btn-primary" disabled={loading}>
+          {loading ? "Logging in…" : "Login"}
         </button>
-        {error ? <p style={{ color: "#ff7f7f" }}>{error}</p> : null}
+        {error ? <p className="error">{error}</p> : null}
       </form>
-    </main>
+    </div>
   );
 }

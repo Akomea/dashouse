@@ -48,6 +48,7 @@ export async function PUT(req: NextRequest) {
       SET
         name = COALESCE(${body.name}, name),
         description = COALESCE(${body.description}, description),
+        image_url = COALESCE(${body.image_url}, image_url),
         active = COALESCE(${body.active}, active),
         sort_order = COALESCE(${body.sort_order}, sort_order),
         updated_at = NOW()
