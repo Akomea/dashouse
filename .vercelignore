@@ -1,0 +1,14 @@
+# Root-level old static site (Next.js app uses public/ only)
+index.html
+gift-shop.html
+intro.html
+intro-1.html
+intro-lazyload.html
+style.css
+css/
+demos/
+js/
+include/
+one-page/
+sass/
+preview/
