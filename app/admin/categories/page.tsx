@@ -96,7 +96,7 @@ export default function AdminCategoriesPage() {
   return (
     <>
       <div className="admin-page-header">
-        <h2>🏷 Category Manager</h2>
+        <h2>Category Manager</h2>
         <button type="button" className="admin-btn admin-btn-primary" onClick={() => setAddOpen(true)}>
           Add Category
         </button>
@@ -117,7 +117,7 @@ export default function AdminCategoriesPage() {
               {cat.image_url ? (
                 <img src={cat.image_url} alt={cat.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8 }} />
               ) : (
-                <div style={{ width: 56, height: 56, background: "#e9ecef", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#6c757d" }}>—</div>
+                <div style={{ width: 56, height: 56, background: "#e9ecef", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#6c757d" }}>-</div>
               )}
               <div>
                 <strong>{cat.name}</strong>
@@ -137,7 +137,7 @@ export default function AdminCategoriesPage() {
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3>Add Category</h3>
-              <button type="button" onClick={() => setAddOpen(false)} aria-label="Close">×</button>
+              <button type="button" className="admin-modal-close" onClick={() => setAddOpen(false)} aria-label="Close">×</button>
             </div>
             <form onSubmit={create}>
               <div className="admin-modal-body">
@@ -172,7 +172,7 @@ export default function AdminCategoriesPage() {
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3>Edit Category</h3>
-              <button type="button" onClick={() => setEditModal(null)} aria-label="Close">×</button>
+              <button type="button" className="admin-modal-close" onClick={() => setEditModal(null)} aria-label="Close">×</button>
             </div>
             <form onSubmit={updateCategory}>
               <div className="admin-modal-body">

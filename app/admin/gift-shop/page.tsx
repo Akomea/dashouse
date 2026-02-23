@@ -132,7 +132,7 @@ export default function AdminGiftShopPage() {
   return (
     <>
       <div className="admin-page-header">
-        <h2>🎁 Gift Shop Manager</h2>
+        <h2>Gift Shop Manager</h2>
         <button type="button" className="admin-btn admin-btn-primary" onClick={() => setAddOpen(true)}>
           Add Item
         </button>
@@ -170,7 +170,7 @@ export default function AdminGiftShopPage() {
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3>Add Gift Item</h3>
-              <button type="button" onClick={() => setAddOpen(false)} aria-label="Close">×</button>
+              <button type="button" className="admin-modal-close" onClick={() => setAddOpen(false)} aria-label="Close">×</button>
             </div>
             <form onSubmit={create}>
               <div className="admin-modal-body">
@@ -201,7 +201,7 @@ export default function AdminGiftShopPage() {
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3>Edit Gift Item</h3>
-              <button type="button" onClick={() => setEditModal(null)} aria-label="Close">×</button>
+              <button type="button" className="admin-modal-close" onClick={() => setEditModal(null)} aria-label="Close">×</button>
             </div>
             <form onSubmit={updateItem}>
               <div className="admin-modal-body">

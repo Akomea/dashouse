@@ -5,7 +5,7 @@
 }
 
 .admin-sidebar {
-  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+  background: #2c3e50;
   min-height: 100vh;
   color: white;
   position: fixed;
@@ -86,7 +86,7 @@
   padding: 0.5rem 1rem;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: #c0392b;
   color: white;
   cursor: pointer;
   font-weight: 600;
@@ -175,6 +175,17 @@
   box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15);
 }
 
+.admin-hours-closed {
+  color: #c00;
+  font-weight: 600;
+}
+
+.admin-hours-closed span[aria-hidden] {
+  color: #c00;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
 .admin-btn {
   padding: 0.5rem 1rem;
   border-radius: 10px;
@@ -186,7 +197,7 @@
 }
 
 .admin-btn-primary {
-  background: linear-gradient(135deg, #28a745, #20c997);
+  background: #28a745;
   color: white;
 }
 
@@ -201,7 +212,7 @@
 }
 
 .admin-btn-danger {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: #e74c3c;
   color: white;
 }
 
@@ -261,6 +272,29 @@
   font-size: 1.25rem;
 }
 
+.admin-modal-header .admin-modal-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  background: #eee;
+  color: #333;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.admin-modal-header .admin-modal-close:hover {
+  background: #ddd;
+}
+
 .admin-modal-body {
   padding: 1.25rem;
 }
@@ -282,12 +316,13 @@
 }
 
 .admin-stat-card {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  background: white;
+  color: #333;
   border-radius: 15px;
   padding: 1.25rem;
   text-align: center;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
 }
 
 .admin-stat-card .icon {
@@ -303,7 +338,7 @@
 .admin-stat-card p {
   margin: 0.25rem 0 0;
   font-size: 0.9rem;
-  opacity: 0.9;
+  color: #6c757d;
 }
 
 .admin-quick-actions {
@@ -313,6 +348,8 @@
 }
 
 .admin-quick-card {
+  background: white;
+  border: 1px solid #e9ecef;
   border-radius: 15px;
   padding: 1.25rem;
   text-align: center;
@@ -334,22 +371,21 @@
   display: inline-block;
   margin-top: 0.75rem;
   padding: 0.5rem 1rem;
-  background: white;
-  color: #333;
+  background: #2c3e50;
+  color: white;
   border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .admin-quick-card a:hover {
-  background: #f8f9fa;
+  background: #34495e;
 }
 
 /* Login page (no sidebar) */
 .admin-login-wrap {
   min-height: 100vh;
-  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+  background: #2c3e50;
   display: flex;
   align-items: center;
   justify-content: center;

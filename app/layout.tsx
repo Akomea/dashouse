@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
-import { GotoTop } from "@/components/goto-top";
+import { SiteLayoutWrapper } from "@/components/site-layout-wrapper";
 
 export const metadata: Metadata = {
   title: "Das House | Restaurant & Café",
@@ -35,10 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="stretched">
         <div className="body-overlay" />
         <div id="wrapper" className="clearfix">
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-          <GotoTop />
+          <SiteLayoutWrapper>{children}</SiteLayoutWrapper>
         </div>
       </body>
     </html>

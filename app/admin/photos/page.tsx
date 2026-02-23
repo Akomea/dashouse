@@ -115,7 +115,7 @@ export default function AdminPhotosPage() {
   return (
     <>
       <div className="admin-page-header">
-        <h2>🖼 Photo Manager</h2>
+        <h2>Photo Manager</h2>
       </div>
 
       {alert && <div className={`admin-alert admin-alert-${alert.type}`}>{alert.message}</div>}
@@ -179,7 +179,7 @@ export default function AdminPhotosPage() {
                 }}
                 defaultValue=""
               >
-                <option value="">—</option>
+                <option value="">-</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -187,7 +187,7 @@ export default function AdminPhotosPage() {
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <button type="button" className="admin-btn admin-btn-sm" style={{ background: "#6c757d", color: "#fff" }} onClick={() => toggleActive(photo)}>
-                {photo.is_active === false ? "👁 Show" : "👁‍🗨 Hide"}
+                {photo.is_active === false ? "Show" : "Hide"}
               </button>
               <button type="button" className="admin-btn admin-btn-danger admin-btn-sm" onClick={() => onDelete(photo.id)}>Delete</button>
             </div>

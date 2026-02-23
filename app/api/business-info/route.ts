@@ -25,11 +25,44 @@ const defaultInfo = {
   sunday_close: "19:00"
 };
 
+const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+/** Normalize DB row for the frontend: TIME comes as "HH:mm:ss", input expects "HH:mm". */
+function normalizeRow(row: Record<string, unknown> | null | undefined): Record<string, unknown> {
+  const base = row ?? defaultInfo;
+  const out: Record<string, unknown> = {
+    business_name: base.business_name ?? defaultInfo.business_name,
+    email: base.email ?? defaultInfo.email,
+    phone: base.phone ?? defaultInfo.phone,
+    address: base.address ?? defaultInfo.address,
+    description: base.description ?? defaultInfo.description,
+    website: base.website ?? defaultInfo.website
+  };
+  for (const day of days) {
+    const open = base[`${day}_open`];
+    const close = base[`${day}_close`];
+    out[`${day}_open`] = normalizeTime(open);
+    out[`${day}_close`] = normalizeTime(close);
+  }
+  return out;
+}
+
+function normalizeTime(v: unknown): string {
+  if (v == null) return "";
+  const s = String(v).trim();
+  if (!s) return "";
+  // "10:00:00" or "01:00:00" -> "10:00" / "01:00"
+  if (s.length >= 5) return s.slice(0, 5);
+  return s;
+}
+
 export async function GET() {
   try {
     const result = (await dbQuery`SELECT * FROM business_info WHERE id = 1`) as Record<string, unknown>[];
-    return ok({ data: result[0] ?? defaultInfo });
-  } catch {
+    const row = result[0];
+    return ok({ data: normalizeRow(row ?? null) });
+  } catch (err) {
+    console.error("business-info GET:", err);
     return ok({ data: defaultInfo });
   }
 }

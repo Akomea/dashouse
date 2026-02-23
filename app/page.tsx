@@ -28,7 +28,104 @@ type BusinessInfo = {
   phone?: string | null;
   email?: string | null;
   address?: string | null;
+  description?: string | null;
+  website?: string | null;
+  monday_open?: string | null;
+  monday_close?: string | null;
+  tuesday_open?: string | null;
+  tuesday_close?: string | null;
+  wednesday_open?: string | null;
+  wednesday_close?: string | null;
+  thursday_open?: string | null;
+  thursday_close?: string | null;
+  friday_open?: string | null;
+  friday_close?: string | null;
+  saturday_open?: string | null;
+  saturday_close?: string | null;
+  sunday_open?: string | null;
+  sunday_close?: string | null;
 };
+
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+/** Format "09:00" / "09:00:00" as "9:00am", "23:30" as "11:30pm". */
+function formatTimeForDisplay(t: string | null | undefined): string {
+  if (!t || !t.trim()) return "";
+  const parts = t.trim().slice(0, 5).split(":");
+  const h = parseInt(parts[0], 10);
+  const m = parts[1] ? parseInt(parts[1], 10) : 0;
+  if (h === 12) return `${12}:${m.toString().padStart(2, "0")}pm`;
+  if (h === 0) return `12:${m.toString().padStart(2, "0")}am`;
+  if (h > 12) return `${h - 12}:${m.toString().padStart(2, "0")}pm`;
+  return `${h}:${m.toString().padStart(2, "0")}am`;
+}
+
+function formatDayName(day: string): string {
+  return day.charAt(0).toUpperCase() + day.slice(1);
+}
+
+const DAY_ABBR: Record<string, string> = {
+  monday: "Mon",
+  tuesday: "Tue",
+  wednesday: "Wed",
+  thursday: "Thu",
+  friday: "Fri",
+  saturday: "Sat",
+  sunday: "Sun",
+};
+
+type HoursRow = { type: "range"; days: readonly string[]; open: string; close: string } | { type: "closed"; days: readonly string[] };
+
+/** Group consecutive days with same open/close into ranges; closed days as separate or grouped. */
+function getHoursRows(business: BusinessInfo): HoursRow[] {
+  const rows: HoursRow[] = [];
+  let i = 0;
+  while (i < DAYS.length) {
+    const day = DAYS[i];
+    const open = business[`${day}_open`]?.trim();
+    const close = business[`${day}_close`]?.trim();
+    const hasHours = !!(open && close);
+    if (hasHours) {
+      const group: string[] = [day];
+      while (i + 1 < DAYS.length) {
+        const next = DAYS[i + 1];
+        const no = business[`${next}_open`]?.trim();
+        const nc = business[`${next}_close`]?.trim();
+        if (no && nc && no === open && nc === close) {
+          group.push(next);
+          i++;
+        } else break;
+      }
+      rows.push({ type: "range", days: group, open, close });
+    } else {
+      const group: string[] = [day];
+      while (i + 1 < DAYS.length) {
+        const next = DAYS[i + 1];
+        const no = business[`${next}_open`]?.trim();
+        const nc = business[`${next}_close`]?.trim();
+        if (!no && !nc) {
+          group.push(next);
+          i++;
+        } else break;
+      }
+      rows.push({ type: "closed", days: group });
+    }
+    i++;
+  }
+  return rows;
+}
+
+function formatHoursRow(row: HoursRow): string {
+  if (row.type === "range") {
+    const start = DAY_ABBR[row.days[0]] ?? row.days[0];
+    const end = row.days.length > 1 ? (DAY_ABBR[row.days[row.days.length - 1]] ?? row.days[row.days.length - 1]) : start;
+    const range = row.days.length > 1 ? `${start}–${end}` : start;
+    return `${range} ${formatTimeForDisplay(row.open)} – ${formatTimeForDisplay(row.close)}`;
+  }
+  const labels = row.days.map((d) => DAY_ABBR[d] ?? d);
+  const range = labels.length > 1 ? `${labels[0]}–${labels[labels.length - 1]}` : labels[0];
+  return `${range} Closed`;
+}
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Breakfast & Waffles": "burger.svg",
@@ -370,10 +467,20 @@ export default function HomePage() {
                   </a>
                   <div className="font-secondary h5 mb-2 color">Time:</div>
                   <div id="business-hours">
-                    <div className="h6 text-white ls1 fw-normal font-primary">Tue-Thur 10:00am - 23:30pm</div>
-                    <div className="h6 text-white ls1 fw-normal font-primary">Fri-Sat 10:00am - 01:00pm</div>
-                    <div className="h6 text-white ls1 fw-normal font-primary">Sunday 10:00am - 19:00pm</div>
-                    <span className="text-uppercase text-white ls1 fw-normal font-primary">Monday Closed</span>
+                    {business
+                      ? getHoursRows(business).map((row, idx) => (
+                          <div key={idx} className="h6 text-white ls1 fw-normal font-primary">
+                            {formatHoursRow(row)}
+                          </div>
+                        ))
+                      : (
+                        <>
+                          <div className="h6 text-white ls1 fw-normal font-primary">Tue–Thu 10:00am – 11:30pm</div>
+                          <div className="h6 text-white ls1 fw-normal font-primary">Fri–Sat 10:00am – 1:00am</div>
+                          <div className="h6 text-white ls1 fw-normal font-primary">Sunday 10:00am – 7:00pm</div>
+                          <div className="h6 text-white ls1 fw-normal font-primary">Monday Closed</div>
+                        </>
+                      )}
                   </div>
                 </div>
               </div>

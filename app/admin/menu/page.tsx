@@ -161,7 +161,7 @@ export default function AdminMenuPage() {
   return (
     <>
       <div className="admin-page-header">
-        <h2>🍴 Menu Manager</h2>
+        <h2>Menu Manager</h2>
         <button type="button" className="admin-btn admin-btn-primary" onClick={() => setAddOpen(true)}>
           Add Menu Item
         </button>
@@ -181,7 +181,7 @@ export default function AdminMenuPage() {
 
       {Object.entries(grouped).map(([categoryName, categoryItems]) => (
         <div key={categoryName} className="admin-card">
-          <h5 style={{ margin: "0 0 1rem" }}>🏷 {escapeHtml(categoryName)}</h5>
+          <h5 style={{ margin: "0 0 1rem" }}>{escapeHtml(categoryName)}</h5>
           {categoryItems.map((item) => {
             const badges = [];
             if (item.is_vegetarian) badges.push(<span key="v" style={{ marginRight: 4, fontSize: "0.75rem", background: "#28a745", color: "#fff", padding: "2px 6px", borderRadius: 4 }}>Vegetarian</span>);
@@ -211,7 +211,7 @@ export default function AdminMenuPage() {
                     <button type="button" className="admin-btn admin-btn-secondary admin-btn-sm" onClick={() => setEditModal(item)}>Edit</button>
                     <button type="button" className="admin-btn admin-btn-danger admin-btn-sm" onClick={() => remove(item.id)}>Delete</button>
                     <button type="button" className="admin-btn admin-btn-sm" style={{ background: "#6c757d", color: "#fff" }} onClick={() => toggleActive(item.id, item.is_active)} title={item.is_active ? "Hide" : "Show"}>
-                      {item.is_active ? "👁‍🗨 Hide" : "👁 Show"}
+                      {item.is_active ? "Hide" : "Show"}
                     </button>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export default function AdminMenuPage() {
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3>Add Menu Item</h3>
-              <button type="button" onClick={() => setAddOpen(false)} aria-label="Close">×</button>
+              <button type="button" className="admin-modal-close" onClick={() => setAddOpen(false)} aria-label="Close">×</button>
             </div>
             <form onSubmit={create}>
               <div className="admin-modal-body">
@@ -282,7 +282,7 @@ export default function AdminMenuPage() {
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
               <h3>Edit Menu Item</h3>
-              <button type="button" onClick={() => setEditModal(null)} aria-label="Close">×</button>
+              <button type="button" className="admin-modal-close" onClick={() => setEditModal(null)} aria-label="Close">×</button>
             </div>
             <form onSubmit={updateItem}>
               <div className="admin-modal-body">

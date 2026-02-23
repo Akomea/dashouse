@@ -31,12 +31,19 @@ export default function AdminBusinessInfoPage() {
   const [info, setInfo] = useState<BusinessInfo>({ business_name: "Das House" });
   const [message, setMessage] = useState<"" | "Saved" | string>("");
   const [loading, setLoading] = useState(true);
+  const [formKey, setFormKey] = useState(0);
+
+  async function loadInfo() {
+    const r = await fetch("/api/business-info");
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error ?? "Failed to load");
+    setInfo((d.data ?? { business_name: "Das House" }) as BusinessInfo);
+    setFormKey((k) => k + 1);
+  }
 
   useEffect(() => {
-    fetch("/api/business-info")
-      .then((r) => r.json())
-      .then((d) => setInfo(d.data ?? { business_name: "Das House" }))
-      .catch(() => undefined)
+    loadInfo()
+      .catch(() => setMessage("Could not load business info from server."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -48,21 +55,28 @@ export default function AdminBusinessInfoPage() {
       business_name: String(form.get("business_name") ?? ""),
       email: String(form.get("email") ?? ""),
       phone: String(form.get("phone") ?? ""),
-      address: String(form.get("address") ?? ""),
-      description: String(form.get("description") ?? ""),
-      website: String(form.get("website") ?? "")
+      address: String(form.get("address") ?? "")
     };
     for (const day of days) {
       payload[`${day}_open`] = String(form.get(`${day}_open`) ?? "").trim() || null;
       payload[`${day}_close`] = String(form.get(`${day}_close`) ?? "").trim() || null;
     }
-    const res = await fetch("/api/business-info", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    setMessage(data.success ? "Saved" : data.error ?? "Failed");
+    try {
+      const res = await fetch("/api/business-info", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Saved");
+        await loadInfo();
+      } else {
+        setMessage(data.error ?? "Failed to save");
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed to save");
+    }
   }
 
   if (loading) return <p>Loading…</p>;
@@ -70,7 +84,7 @@ export default function AdminBusinessInfoPage() {
   return (
     <>
       <div className="admin-page-header">
-        <h2>🏢 Business Info Manager</h2>
+        <h2>Business Info Manager</h2>
       </div>
 
       {message && (
@@ -79,7 +93,7 @@ export default function AdminBusinessInfoPage() {
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="admin-card">
+      <form key={formKey} onSubmit={onSubmit} className="admin-card">
         <h3 style={{ margin: "0 0 1rem" }}>Contact &amp; details</h3>
         <div className="admin-form-group">
           <label>Business name *</label>
@@ -97,36 +111,39 @@ export default function AdminBusinessInfoPage() {
           <label>Address</label>
           <textarea name="address" rows={2} defaultValue={info.address ?? ""} placeholder="Address" />
         </div>
-        <div className="admin-form-group">
-          <label>Website</label>
-          <input name="website" type="url" defaultValue={info.website ?? ""} placeholder="Website" />
-        </div>
-        <div className="admin-form-group">
-          <label>Description</label>
-          <textarea name="description" rows={3} defaultValue={info.description ?? ""} placeholder="Description" />
-        </div>
 
         <h3 style={{ margin: "1.5rem 0 1rem" }}>Operating hours</h3>
         <p style={{ margin: "0 0 1rem", fontSize: "0.9rem", color: "#6c757d" }}>Leave open/close empty for closed days.</p>
         <div style={{ display: "grid", gap: 12 }}>
-          {days.map((day) => (
-            <div key={day} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
-              <span style={{ minWidth: 100, textTransform: "capitalize" }}>{day}</span>
-              <input
-                name={`${day}_open`}
-                type="time"
-                defaultValue={info[`${day}_open`] ?? ""}
-                style={{ width: "auto", minWidth: 100 }}
-              />
-              <span>–</span>
-              <input
-                name={`${day}_close`}
-                type="time"
-                defaultValue={info[`${day}_close`] ?? ""}
-                style={{ width: "auto", minWidth: 100 }}
-              />
-            </div>
-          ))}
+          {days.map((day) => {
+            const openVal = info[`${day}_open`] ?? "";
+            const closeVal = info[`${day}_close`] ?? "";
+            const isClosed = !String(openVal).trim() && !String(closeVal).trim();
+            return (
+              <div key={day} className="admin-hours-row" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+                <span style={{ minWidth: 100, textTransform: "capitalize" }}>{day}</span>
+                <input
+                  name={`${day}_open`}
+                  type="time"
+                  defaultValue={openVal}
+                  style={{ width: "auto", minWidth: 100 }}
+                />
+                <span>–</span>
+                <input
+                  name={`${day}_close`}
+                  type="time"
+                  defaultValue={closeVal}
+                  style={{ width: "auto", minWidth: 100 }}
+                />
+                {isClosed && (
+                  <span className="admin-hours-closed" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span aria-hidden>×</span>
+                    <span>Closed</span>
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div style={{ marginTop: "1.5rem" }}>

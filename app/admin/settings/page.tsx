@@ -45,7 +45,7 @@ export default function AdminSettingsPage() {
   return (
     <>
       <div className="admin-page-header">
-        <h2>⚙ Settings</h2>
+        <h2>Settings</h2>
       </div>
 
       <div className="admin-card">
