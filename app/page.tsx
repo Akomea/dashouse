@@ -23,6 +23,11 @@ type MenuItem = {
   is_gluten_free?: boolean;
 };
 
+type Setting = {
+  setting_key: string;
+  setting_value: string | null;
+};
+
 type BusinessInfo = {
   business_name?: string;
   phone?: string | null;
@@ -169,6 +174,7 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [business, setBusiness] = useState<BusinessInfo | null>(null);
+  const [menuPdfUrl, setMenuPdfUrl] = useState("");
   const [menuLoading, setMenuLoading] = useState(true);
 
   useEffect(() => {
@@ -176,11 +182,15 @@ export default function HomePage() {
       fetch("/api/categories?is_active=1").then((r) => r.json()),
       fetch("/api/menu-items?is_active=1").then((r) => r.json()),
       fetch("/api/business-info").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()),
     ])
-      .then(([catRes, menuRes, bizRes]) => {
+      .then(([catRes, menuRes, bizRes, settingsRes]) => {
         setCategories((catRes?.data ?? []).slice(0, 20));
         setMenuItems(menuRes?.data ?? []);
         setBusiness(bizRes?.data ?? null);
+        const settings = (settingsRes?.data ?? []) as Setting[];
+        const pdfSetting = settings.find((setting) => setting.setting_key === "menu_pdf_url");
+        setMenuPdfUrl(pdfSetting?.setting_value?.trim() ?? "");
       })
       .catch(() => undefined)
       .finally(() => setMenuLoading(false));
@@ -197,6 +207,7 @@ export default function HomePage() {
 
   const phone = business?.phone ?? "+43 677 634 238 81";
   const bookTel = phone.replace(/\D/g, "");
+  const menuPdfHref = menuPdfUrl || "/demos/burger/images/others/menu.pdf";
 
   return (
     <>
@@ -320,7 +331,7 @@ export default function HomePage() {
                   <div className="before-heading font-secondary color">DASHOUSE Cafe Bar</div>
                   <h1 className="font-border display-4 ls1 fw-bold">Menu</h1>
                   <a
-                    href="/demos/burger/images/others/menu.pdf"
+                    href={menuPdfHref}
                     download
                     data-easing="easeInOutExpo"
                     className="button button-large button-rounded px-4 button-border button-light button-white fw-semibold"

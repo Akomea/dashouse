@@ -253,10 +253,10 @@ export default function AdminMenuPage() {
                 </div>
                 <div className="admin-form-group">
                   <label>Dietary</label>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" name="is_vegetarian" value="1" /> Vegetarian</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" name="is_vegan" value="1" /> Vegan</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" name="is_gluten_free" value="1" /> Gluten-Free</label>
+                  <div className="admin-dietary-checkboxes">
+                    <label><input type="checkbox" name="is_vegetarian" value="1" /> Vegetarian</label>
+                    <label><input type="checkbox" name="is_vegan" value="1" /> Vegan</label>
+                    <label><input type="checkbox" name="is_gluten_free" value="1" /> Gluten-Free</label>
                   </div>
                 </div>
                 <div className="admin-form-group">
@@ -308,10 +308,10 @@ export default function AdminMenuPage() {
                 </div>
                 <div className="admin-form-group">
                   <label>Dietary</label>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" name="is_vegetarian" value="1" defaultChecked={editModal.is_vegetarian} /> Vegetarian</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" name="is_vegan" value="1" defaultChecked={editModal.is_vegan} /> Vegan</label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" name="is_gluten_free" value="1" defaultChecked={editModal.is_gluten_free} /> Gluten-Free</label>
+                  <div className="admin-dietary-checkboxes">
+                    <label><input type="checkbox" name="is_vegetarian" value="1" defaultChecked={editModal.is_vegetarian} /> Vegetarian</label>
+                    <label><input type="checkbox" name="is_vegan" value="1" defaultChecked={editModal.is_vegan} /> Vegan</label>
+                    <label><input type="checkbox" name="is_gluten_free" value="1" defaultChecked={editModal.is_gluten_free} /> Gluten-Free</label>
                   </div>
                 </div>
                 <div className="admin-form-group">

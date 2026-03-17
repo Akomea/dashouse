@@ -10,20 +10,32 @@ export async function POST(req: Request) {
       return fail("File is required");
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      return fail("File too large. Maximum size is 5MB");
-    }
-
-    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const allowed = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf"
+    ];
     if (!allowed.includes(file.type)) {
       return fail("Invalid file type");
+    }
+
+    const maxSizeBytes =
+      file.type === "application/pdf" ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      const maxSizeMb = file.type === "application/pdf" ? 20 : 5;
+      return fail(`File too large. Maximum size is ${maxSizeMb}MB`);
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
 
-    const uploaded = await getCloudinary().uploader.upload(dataUri, { folder });
+    const uploaded = await getCloudinary().uploader.upload(dataUri, {
+      folder,
+      resource_type: "auto"
+    });
     return ok({
       data: {
         url: uploaded.secure_url,

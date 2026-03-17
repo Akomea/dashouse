@@ -155,7 +155,7 @@
   color: #333;
 }
 
-.admin-form-group input,
+.admin-form-group input:not([type="checkbox"]):not([type="radio"]),
 .admin-form-group textarea,
 .admin-form-group select {
   width: 100%;
@@ -167,12 +167,35 @@
   color: #333;
 }
 
-.admin-form-group input:focus,
+.admin-form-group input[type="checkbox"],
+.admin-form-group input[type="radio"] {
+  width: auto;
+  margin: 0;
+  accent-color: #2c3e50;
+}
+
+.admin-form-group input:not([type="checkbox"]):not([type="radio"]):focus,
 .admin-form-group textarea:focus,
 .admin-form-group select:focus {
   outline: none;
   border-color: #2c3e50;
   box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15);
+}
+
+.admin-dietary-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: center;
+}
+
+.admin-dietary-checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .admin-hours-closed {
