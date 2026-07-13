@@ -9,7 +9,7 @@ export function ReservlyWidget() {
       <div className="reservly-wrapper" style={{ borderRadius: 20 }}>
         <div id="reservly-banner">
           <div id="reservly-link-line" className="reservly-bgtext">
-            <a href="https://reservly.at" target="_blank" rel="noopener" className="reservly-bgtext">
+            <a href="https://reservly.at" target="_blank" rel="noopener noreferrer" className="reservly-bgtext">
               Reservly
             </a>
             <a
