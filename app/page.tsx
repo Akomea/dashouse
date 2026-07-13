@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ReservlyWidget } from "@/components/reservly-widget";
 
 type Category = {
   id: number;
@@ -270,14 +271,21 @@ export default function HomePage() {
                       See Menu
                     </a>
                     <a
-                      href={`tel:${bookTel}`}
+                      href="#reservations"
                       className="button button-large button-rounded px-4 button-reveal d-inline-flex tright fw-semibold"
                       data-animate="fadeInUp"
                       data-delay="300"
+                      data-scrollto="#reservations"
+                      data-easing="easeInOutExpo"
+                      data-speed="1250"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        document.getElementById("reservations")?.scrollIntoView({ behavior: "smooth" });
+                      }}
                       style={{ backgroundColor: "#f70000", color: "#fff", opacity: 1 }}
                     >
                       <i className="icon-line-arrow-right" />
-                      <span>Book a Table</span>
+                      <span>Reserve a Table</span>
                     </a>
                   </div>
                 </div>
@@ -430,6 +438,23 @@ export default function HomePage() {
                 })}
             </div>
           </div>
+
+          <div id="reservations" className="page-section">
+            <div className="section dark-color m-0">
+              <div className="container dark">
+                <div className="center bottommargin-lg mx-auto" style={{ maxWidth: 700 }}>
+                  <div className="before-heading font-primary color">Book Your Visit</div>
+                  <h2 className="font-secondary display-4 fw-bold">Reservations</h2>
+                  <p className="lead">
+                    Reserve your table online in just a few clicks. Choose your date, time, and party size —
+                    we look forward to welcoming you to Das House.
+                  </p>
+                </div>
+                <ReservlyWidget />
+              </div>
+            </div>
+          </div>
+
           {/* Contact - same structure as index.html #contact */}
           <div
             id="contact"

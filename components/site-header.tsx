@@ -130,6 +130,11 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
                       </a>
                     </li>
                     <li className="menu-item">
+                      <a className="menu-link" href="#reservations" onClick={closeMenu}>
+                        <div>Reservations</div>
+                      </a>
+                    </li>
+                    <li className="menu-item">
                       <Link href="/gift-shop" className="menu-link">
                         <div>Gift Shop</div>
                       </Link>
@@ -155,6 +160,11 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
                     <li className="menu-item">
                       <Link href="/#menu" className="menu-link">
                         <div>Menu</div>
+                      </Link>
+                    </li>
+                    <li className="menu-item">
+                      <Link href="/#reservations" className="menu-link">
+                        <div>Reservations</div>
                       </Link>
                     </li>
                     <li className={`menu-item ${pathname === "/gift-shop" ? "current" : ""}`}>
