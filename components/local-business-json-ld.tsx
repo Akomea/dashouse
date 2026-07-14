@@ -10,7 +10,7 @@ export function LocalBusinessJsonLd() {
     "@type": ["CafeOrCoffeeShop", "Restaurant"],
     name: "Das House",
     description:
-      "Katzenkaffee und Café in Wien 1060. Veganes Frühstück, Kaffee, Cocktails und gerettete Katzen in Gumpendorf.",
+      "Dein gemütliches Revier im Sechsten. Katzenkaffee & Café in Wien 1060 – Kaffee genießen in samtiger Gesellschaft.",
     url: SITE_URL,
     telephone: "+43-677-634-23881",
     email: "info@dashouse.at",

@@ -234,13 +234,13 @@ export default function HomePage() {
                   <div className="emphasis-title animated fadeInUp" data-animate="fadeInUp" style={{ color: "#fff", opacity: 1 }}>
                     <h1
                       className="font-border not-dark"
-                      style={{ color: "#fff", textShadow: "5px 1px 2px rgba(0,0,0,0.8)", paddingTop: "1.5rem", fontSize: "clamp(2.4rem, 6vw, 5.5rem)", lineHeight: 1.05 }}
+                      style={{ color: "#fff", textShadow: "5px 1px 2px rgba(0,0,0,0.8)", paddingTop: "1.5rem", fontSize: "clamp(2.1rem, 5.2vw, 4.75rem)", lineHeight: 1.08 }}
                     >
-                      <span style={{ display: "block", whiteSpace: "nowrap" }}>
+                      <span style={{ display: "block" }}>
                         <span style={{ color: "#f5d742" }}>{t.hero.line1Lead}</span>{" "}
                         <span style={{ color: "#fff" }}>{t.hero.line1Trail}</span>
                       </span>
-                      <span style={{ display: "block", whiteSpace: "nowrap" }}>
+                      <span style={{ display: "block" }}>
                         {t.hero.line2Lead ? (
                           <>
                             <span style={{ color: "#fff" }}>{t.hero.line2Lead}</span>{" "}
@@ -250,9 +250,14 @@ export default function HomePage() {
                       </span>
                     </h1>
                   </div>
-                  <p className="lead animated fadeInUp" data-animate="fadeInUp" data-delay="100" style={{ color: "#fff", opacity: 1 }}>
+                  <h2
+                    className="lead animated fadeInUp fw-normal"
+                    data-animate="fadeInUp"
+                    data-delay="100"
+                    style={{ color: "#fff", opacity: 1, fontSize: "clamp(1.05rem, 2.2vw, 1.35rem)", maxWidth: "36em", marginInline: "auto" }}
+                  >
                     {t.hero.lead}
-                  </p>
+                  </h2>
                   <div className="d-flex flex-wrap justify-content-center gap-2 mt-3">
                     <a
                       href="#menu"

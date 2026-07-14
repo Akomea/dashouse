@@ -4,9 +4,9 @@ import { SiteLayoutWrapper } from "@/components/site-layout-wrapper";
 import { LocalBusinessJsonLd } from "@/components/local-business-json-ld";
 
 const SITE_URL = "https://dashouse.at";
-const TITLE = "Das House | Katzenkaffee & Café Wien 1060";
+const TITLE = "Das House | Dein gemütliches Revier im Sechsten";
 const DESCRIPTION =
-  "Katzenkaffee in Wien 1060 – veganes Frühstück, Kaffee, Cocktails und Samtpfoten in Gumpendorf. Das House, Gumpendorfer Straße 51.";
+  "Katzenkaffee & Café in Wien 1060 – Kaffee genießen in samtiger Gesellschaft. Das House, Gumpendorfer Straße 51.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
