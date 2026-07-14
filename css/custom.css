@@ -5,4 +5,40 @@
 	Overwriting Default Theme Styles for Better Handling Updates
 -----------------------------------------------------------------*/
 
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+  line-height: 1;
+}
+
+.lang-toggle-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.lang-toggle-btn:hover,
+.lang-toggle-btn:focus-visible {
+  opacity: 0.9;
+  outline: none;
+}
+
+.lang-toggle-btn.is-active {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.lang-toggle-sep {
+  opacity: 0.35;
+  user-select: none;
+}
 

@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ReservlyWidget } from "@/components/reservly-widget";
+import { useLanguage } from "@/lib/i18n/language-context";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/locales";
 
 type Category = {
   id: number;
@@ -54,31 +56,21 @@ type BusinessInfo = {
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 
-/** Format "09:00" / "09:00:00" as "9:00am", "23:30" as "11:30pm". */
-function formatTimeForDisplay(t: string | null | undefined): string {
+/** Format "09:00" — 12h for EN, 24h for DE. */
+function formatTimeForDisplay(t: string | null | undefined, locale: Locale): string {
   if (!t || !t.trim()) return "";
   const parts = t.trim().slice(0, 5).split(":");
   const h = parseInt(parts[0], 10);
   const m = parts[1] ? parseInt(parts[1], 10) : 0;
-  if (h === 12) return `${12}:${m.toString().padStart(2, "0")}pm`;
-  if (h === 0) return `12:${m.toString().padStart(2, "0")}am`;
-  if (h > 12) return `${h - 12}:${m.toString().padStart(2, "0")}pm`;
-  return `${h}:${m.toString().padStart(2, "0")}am`;
+  const mm = m.toString().padStart(2, "0");
+  if (locale === "de") {
+    return `${h.toString().padStart(2, "0")}:${mm}`;
+  }
+  if (h === 12) return `${12}:${mm}pm`;
+  if (h === 0) return `12:${mm}am`;
+  if (h > 12) return `${h - 12}:${mm}pm`;
+  return `${h}:${mm}am`;
 }
-
-function formatDayName(day: string): string {
-  return day.charAt(0).toUpperCase() + day.slice(1);
-}
-
-const DAY_ABBR: Record<string, string> = {
-  monday: "Mon",
-  tuesday: "Tue",
-  wednesday: "Wed",
-  thursday: "Thu",
-  friday: "Fri",
-  saturday: "Sat",
-  sunday: "Sun",
-};
 
 type HoursRow = { type: "range"; days: readonly string[]; open: string; close: string } | { type: "closed"; days: readonly string[] };
 
@@ -121,16 +113,20 @@ function getHoursRows(business: BusinessInfo): HoursRow[] {
   return rows;
 }
 
-function formatHoursRow(row: HoursRow): string {
+function dayAbbr(day: string, t: Dictionary): string {
+  return t.daysAbbr[day as keyof typeof t.daysAbbr] ?? day;
+}
+
+function formatHoursRow(row: HoursRow, t: Dictionary, locale: Locale): string {
   if (row.type === "range") {
-    const start = DAY_ABBR[row.days[0]] ?? row.days[0];
-    const end = row.days.length > 1 ? (DAY_ABBR[row.days[row.days.length - 1]] ?? row.days[row.days.length - 1]) : start;
+    const start = dayAbbr(row.days[0], t);
+    const end = row.days.length > 1 ? dayAbbr(row.days[row.days.length - 1], t) : start;
     const range = row.days.length > 1 ? `${start}–${end}` : start;
-    return `${range} ${formatTimeForDisplay(row.open)} – ${formatTimeForDisplay(row.close)}`;
+    return `${range} ${formatTimeForDisplay(row.open, locale)} – ${formatTimeForDisplay(row.close, locale)}`;
   }
-  const labels = row.days.map((d) => DAY_ABBR[d] ?? d);
+  const labels = row.days.map((d) => dayAbbr(d, t));
   const range = labels.length > 1 ? `${labels[0]}–${labels[labels.length - 1]}` : labels[0];
-  return `${range} Closed`;
+  return `${range} ${t.contact.closed}`;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -172,6 +168,7 @@ function getCategoryImage(cat: Category, name: string): string {
 }
 
 export default function HomePage() {
+  const { locale, t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [business, setBusiness] = useState<BusinessInfo | null>(null);
@@ -240,18 +237,21 @@ export default function HomePage() {
                       style={{ color: "#fff", textShadow: "5px 1px 2px rgba(0,0,0,0.8)", paddingTop: "1.5rem", fontSize: "clamp(2.4rem, 6vw, 5.5rem)", lineHeight: 1.05 }}
                     >
                       <span style={{ display: "block", whiteSpace: "nowrap" }}>
-                        <span style={{ color: "#f5d742" }}>Purr-fect</span>{" "}
-                        <span style={{ color: "#fff" }}>Brews</span>
+                        <span style={{ color: "#f5d742" }}>{t.hero.line1Lead}</span>{" "}
+                        <span style={{ color: "#fff" }}>{t.hero.line1Trail}</span>
                       </span>
                       <span style={{ display: "block", whiteSpace: "nowrap" }}>
-                        <span style={{ color: "#fff" }}>&</span>{" "}
-                        <span style={{ color: "#f5d742" }}>Bites!</span>
+                        {t.hero.line2Lead ? (
+                          <>
+                            <span style={{ color: "#fff" }}>{t.hero.line2Lead}</span>{" "}
+                          </>
+                        ) : null}
+                        <span style={{ color: "#f5d742" }}>{t.hero.line2Trail}</span>
                       </span>
                     </h1>
                   </div>
                   <p className="lead animated fadeInUp" data-animate="fadeInUp" data-delay="100" style={{ color: "#fff", opacity: 1 }}>
-                    Enjoy delicious food, cocktails, and specialty brews—all while making a difference. Come for the
-                    bites, stay for the purrs!
+                    {t.hero.lead}
                   </p>
                   <div className="d-flex flex-wrap justify-content-center gap-2 mt-3">
                     <a
@@ -268,7 +268,7 @@ export default function HomePage() {
                       }}
                       style={{ opacity: 1 }}
                     >
-                      See Menu
+                      {t.hero.seeMenu}
                     </a>
                     <a
                       href="#reservations"
@@ -285,7 +285,7 @@ export default function HomePage() {
                       style={{ backgroundColor: "#f70000", color: "#fff", opacity: 1 }}
                     >
                       <i className="icon-line-arrow-right" />
-                      <span>Reserve a Table</span>
+                      <span>{t.hero.reserve}</span>
                     </a>
                   </div>
                 </div>
@@ -314,13 +314,9 @@ export default function HomePage() {
             <div className="section my-0 dark-color">
               <div className="container dark">
                 <div className="center bottommargin mx-auto" style={{ maxWidth: 700 }}>
-                  <div className="before-heading font-primary color">Our Story</div>
-                  <h1 className="font-secondary display-4 fw-bold">Coffee, Cocktails, and Adorable Cats</h1>
-                  <p className="lead">
-                    Where great coffee, handcrafted cocktails, and the company of furry friends await you! With over 500
-                    cats and dogs rescued and adopted, every sip you take and every moment you spend here helps us
-                    continue this incredible journey.
-                  </p>
+                  <div className="before-heading font-primary color">{t.story.eyebrow}</div>
+                  <h1 className="font-secondary display-4 fw-bold">{t.story.heading}</h1>
+                  <p className="lead">{t.story.body}</p>
                   <div className="mx-auto my-5" style={{ maxWidth: 660 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -336,15 +332,15 @@ export default function HomePage() {
             <div className="section dark-color m-0 p-0">
               <div className="container dark">
                 <div className="center bottommargin-lg">
-                  <div className="before-heading font-secondary color">DASHOUSE Cafe Bar</div>
-                  <h1 className="font-border display-4 ls1 fw-bold">Menu</h1>
+                  <div className="before-heading font-secondary color">{t.menu.cafeEyebrow}</div>
+                  <h1 className="font-border display-4 ls1 fw-bold">{t.menu.heading}</h1>
                   <a
                     href={menuPdfHref}
                     download
                     data-easing="easeInOutExpo"
                     className="button button-large button-rounded px-4 button-border button-light button-white fw-semibold"
                   >
-                    Download Full Menu
+                    {t.menu.download}
                   </a>
                 </div>
                 <div className="clear" />
@@ -358,7 +354,7 @@ export default function HomePage() {
           <div id="menu" className="page-section">
             {menuLoading && (
               <div id="menu-loading" className="container dark py-5">
-                Loading our delicious menu...
+                {t.menu.loading}
               </div>
             )}
             <div id="menu-error" className="container" style={{ display: "none" }} />
@@ -385,7 +381,7 @@ export default function HomePage() {
                         <div className="row align-items-center">
                           <div className={`col-md-5 dark ${menuOrder}`}>
                             <div className="bottommargin">
-                              <div className="before-heading font-secondary color mb-2">Our Menu</div>
+                              <div className="before-heading font-secondary color mb-2">{t.menu.ourMenu}</div>
                               <div className="d-flex align-items-center dotted-bg">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
@@ -409,9 +405,9 @@ export default function HomePage() {
                                   {item.description && <p className="mb-1 text-white-50">{item.description}</p>}
                                   {(item.is_vegetarian || item.is_vegan || item.is_gluten_free) && (
                                     <div className="d-flex gap-2 flex-wrap mt-1">
-                                      {item.is_vegetarian && <span className="badge bg-success">Vegetarian</span>}
-                                      {item.is_vegan && <span className="badge bg-primary">Vegan</span>}
-                                      {item.is_gluten_free && <span className="badge bg-warning">Gluten Free</span>}
+                                      {item.is_vegetarian && <span className="badge bg-success">{t.menu.vegetarian}</span>}
+                                      {item.is_vegan && <span className="badge bg-primary">{t.menu.vegan}</span>}
+                                      {item.is_gluten_free && <span className="badge bg-warning">{t.menu.glutenFree}</span>}
                                     </div>
                                   )}
                                 </li>
@@ -443,12 +439,9 @@ export default function HomePage() {
             <div className="section dark-color m-0">
               <div className="container dark">
                 <div className="center bottommargin-lg mx-auto" style={{ maxWidth: 700 }}>
-                  <div className="before-heading font-primary color">Book Your Visit</div>
-                  <h2 className="font-secondary display-4 fw-bold">Reservations</h2>
-                  <p className="lead">
-                    Reserve your table online in just a few clicks. Choose your date, time, and party size —
-                    we look forward to welcoming you to Das House.
-                  </p>
+                  <div className="before-heading font-primary color">{t.reservations.eyebrow}</div>
+                  <h2 className="font-secondary display-4 fw-bold">{t.reservations.heading}</h2>
+                  <p className="lead">{t.reservations.body}</p>
                 </div>
                 <ReservlyWidget />
               </div>
@@ -466,7 +459,7 @@ export default function HomePage() {
               <div className="row">
                 <div className="col-sm-5" style={{ lineHeight: 1.7, zIndex: 1 }}>
                   <address className="d-block mb-5">
-                    <div className="font-secondary h5 mb-2 color">Address:</div>
+                    <div className="font-secondary h5 mb-2 color">{t.contact.address}</div>
                     <span id="business-address" className="h6 text-white ls1 fw-normal font-primary">
                       {business?.address
                         ? business.address.split("\n").map((line, i) => (
@@ -477,15 +470,15 @@ export default function HomePage() {
                           ))
                         : (
                             <>
-                              Austria, Vienna
+                              {t.contact.fallbackAddressLine1}
                               <br />
-                              Gumpendorfer strasse 51
+                              {t.contact.fallbackAddressLine2}
                               <br />
                             </>
                           )}
                     </span>
                   </address>
-                  <div className="font-secondary h5 mb-2 color">Phone Number:</div>
+                  <div className="font-secondary h5 mb-2 color">{t.contact.phone}</div>
                   <a
                     href={`tel:${bookTel}`}
                     className="d-block h6 text-white ls1 fw-normal font-primary mb-5"
@@ -493,7 +486,7 @@ export default function HomePage() {
                   >
                     {phone}
                   </a>
-                  <div className="font-secondary h5 mb-2 color">Email:</div>
+                  <div className="font-secondary h5 mb-2 color">{t.contact.email}</div>
                   <a
                     href={business?.email ? `mailto:${business.email}` : "mailto:info@dashouse.at?Subject=Hello%20again"}
                     className="d-block h6 text-white ls1 fw-normal font-primary mb-5"
@@ -501,22 +494,31 @@ export default function HomePage() {
                   >
                     {business?.email ?? "info@dashouse.at"}
                   </a>
-                  <div className="font-secondary h5 mb-2 color">Time:</div>
+                  <div className="font-secondary h5 mb-2 color">{t.contact.time}</div>
                   <div id="business-hours">
                     {business
                       ? getHoursRows(business).map((row, idx) => (
                           <div key={idx} className="h6 text-white ls1 fw-normal font-primary">
-                            {formatHoursRow(row)}
+                            {formatHoursRow(row, t, locale)}
                           </div>
                         ))
-                      : (
-                        <>
-                          <div className="h6 text-white ls1 fw-normal font-primary">Tue–Thu 10:00am – 11:30pm</div>
-                          <div className="h6 text-white ls1 fw-normal font-primary">Fri–Sat 10:00am – 1:00am</div>
-                          <div className="h6 text-white ls1 fw-normal font-primary">Sunday 10:00am – 7:00pm</div>
-                          <div className="h6 text-white ls1 fw-normal font-primary">Monday Closed</div>
-                        </>
-                      )}
+                      : locale === "de"
+                        ? (
+                          <>
+                            <div className="h6 text-white ls1 fw-normal font-primary">Di–Do 10:00 – 23:30</div>
+                            <div className="h6 text-white ls1 fw-normal font-primary">Fr–Sa 10:00 – 01:00</div>
+                            <div className="h6 text-white ls1 fw-normal font-primary">So 10:00 – 19:00</div>
+                            <div className="h6 text-white ls1 fw-normal font-primary">Mo {t.contact.closed}</div>
+                          </>
+                        )
+                        : (
+                          <>
+                            <div className="h6 text-white ls1 fw-normal font-primary">Tue–Thu 10:00am – 11:30pm</div>
+                            <div className="h6 text-white ls1 fw-normal font-primary">Fri–Sat 10:00am – 1:00am</div>
+                            <div className="h6 text-white ls1 fw-normal font-primary">Sunday 10:00am – 7:00pm</div>
+                            <div className="h6 text-white ls1 fw-normal font-primary">Monday Closed</div>
+                          </>
+                        )}
                   </div>
                 </div>
               </div>
@@ -528,7 +530,7 @@ export default function HomePage() {
               data-address="Gumpendorfer strasse 51, Austria"
             >
               <iframe
-                title="Das House Map"
+                title={t.contact.mapTitle}
                 src="https://www.google.com/maps?q=Gumpendorfer+Strasse+51,+Vienna,+Austria&output=embed"
                 width="100%"
                 height="100%"

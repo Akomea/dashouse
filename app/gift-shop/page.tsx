@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n/language-context";
 import "./gift-shop.css";
 
 type GiftItem = {
@@ -13,6 +14,7 @@ type GiftItem = {
 };
 
 export default function GiftShopPage() {
+  const t = useT();
   const [items, setItems] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<GiftItem | null>(null);
@@ -42,8 +44,8 @@ export default function GiftShopPage() {
         <div className="content-wrap" style={{ paddingTop: 0 }}>
           <div className="gift-shop-header">
             <div className="container">
-              <h1 style={{ color: "white !important" }}>Das House Gift Shop</h1>
-              <p>Take a piece of Das House home with you</p>
+              <h1 style={{ color: "white !important" }}>{t.giftShop.title}</h1>
+              <p>{t.giftShop.subtitle}</p>
             </div>
           </div>
 
@@ -51,7 +53,7 @@ export default function GiftShopPage() {
             <div className="container">
               {loading && (
                 <div id="gift-shop-loading">
-                  <p>Loading our amazing merchandise...</p>
+                  <p>{t.giftShop.loading}</p>
                 </div>
               )}
 
@@ -76,7 +78,7 @@ export default function GiftShopPage() {
                             />
                           ) : (
                             <div className="gift-image" style={{ background: "#eee", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <span className="text-muted">No image</span>
+                              <span className="text-muted">{t.giftShop.noImage}</span>
                             </div>
                           )}
                           <div className="gift-overlay">
@@ -95,7 +97,7 @@ export default function GiftShopPage() {
 
               {!loading && items.length === 0 && (
                 <div className="text-center py-5 text-muted">
-                  <p>No gift shop items available at the moment.</p>
+                  <p>{t.giftShop.empty}</p>
                 </div>
               )}
 
@@ -104,12 +106,8 @@ export default function GiftShopPage() {
                   <div className="card border-0 shadow-sm">
                     <div className="card-body p-4">
                       <i className="icon-info-circle" style={{ fontSize: "2rem", marginBottom: 12 }} />
-                      <h4 className="mb-3">About Our Merchandise</h4>
-                      <p className="text-muted mb-0">
-                        All our merchandise is carefully selected and designed to reflect the spirit of Das House. From
-                        cozy t-shirts to beautiful mugs and unique coasters, each item helps support our mission of
-                        caring for cats and creating a warm community space.
-                      </p>
+                      <h4 className="mb-3">{t.giftShop.aboutHeading}</h4>
+                      <p className="text-muted mb-0">{t.giftShop.aboutBody}</p>
                     </div>
                   </div>
                 </div>
@@ -140,12 +138,12 @@ export default function GiftShopPage() {
           <div className="modal-content" style={{ borderRadius: 15, overflow: "hidden" }}>
             <div className="modal-header border-0">
               <h5 className="modal-title" id="giftModalTitle">
-                {selected?.name ?? "Gift Item"}
+                {selected?.name ?? t.giftShop.giftItemFallback}
               </h5>
               <button
                 type="button"
                 className="btn-close"
-                aria-label="Close"
+                aria-label={t.giftShop.close}
                 onClick={closeModal}
               />
             </div>

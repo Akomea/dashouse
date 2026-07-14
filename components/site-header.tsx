@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
+import type { Locale } from "@/lib/i18n/locales";
 
 const LOGO_SRC = "/demos/burger/images/logo-hakane3.png";
 const LOGO_FALLBACK = "/demos/burger/images/das-logo.svg";
@@ -14,6 +16,7 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
   const isHome = pathname === "/";
   const [logoSrc, setLogoSrc] = useState(LOGO_SRC);
   const [isSticky, setIsSticky] = useState(false);
+  const { locale, setLocale, t } = useLanguage();
 
   useEffect(() => {
     const header = document.getElementById("header");
@@ -68,6 +71,11 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
   const telHref = `tel:${tel}`;
   const headerBackground = isHome && !isSticky ? "transparent" : "#101010";
 
+  const pickLocale = (next: Locale) => {
+    setLocale(next);
+    closeMenu();
+  };
+
   return (
     <header
       id="header"
@@ -116,32 +124,32 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
                   <>
                     <li className="current menu-item">
                       <a className="menu-link" href="#slider" onClick={closeMenu}>
-                        <div>Home</div>
+                        <div>{t.nav.home}</div>
                       </a>
                     </li>
                     <li className="menu-item">
                       <a className="menu-link" href="#story" onClick={closeMenu}>
-                        <div>Story</div>
+                        <div>{t.nav.story}</div>
                       </a>
                     </li>
                     <li className="menu-item">
                       <a className="menu-link" href="#menu" onClick={closeMenu}>
-                        <div>Menu</div>
+                        <div>{t.nav.menu}</div>
                       </a>
                     </li>
                     <li className="menu-item">
                       <a className="menu-link" href="#reservations" onClick={closeMenu}>
-                        <div>Reservations</div>
+                        <div>{t.nav.reservations}</div>
                       </a>
                     </li>
                     <li className="menu-item">
                       <Link href="/gift-shop" className="menu-link">
-                        <div>Gift Shop</div>
+                        <div>{t.nav.giftShop}</div>
                       </Link>
                     </li>
                     <li className="menu-item">
                       <a className="menu-link" href="#contact" data-offset="20" onClick={closeMenu}>
-                        <div>Contact</div>
+                        <div>{t.nav.contact}</div>
                       </a>
                     </li>
                   </>
@@ -149,36 +157,59 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
                   <>
                     <li className="menu-item">
                       <Link href="/" className="menu-link">
-                        <div>Home</div>
+                        <div>{t.nav.home}</div>
                       </Link>
                     </li>
                     <li className="menu-item">
                       <Link href="/#story" className="menu-link">
-                        <div>Story</div>
+                        <div>{t.nav.story}</div>
                       </Link>
                     </li>
                     <li className="menu-item">
                       <Link href="/#menu" className="menu-link">
-                        <div>Menu</div>
+                        <div>{t.nav.menu}</div>
                       </Link>
                     </li>
                     <li className="menu-item">
                       <Link href="/#reservations" className="menu-link">
-                        <div>Reservations</div>
+                        <div>{t.nav.reservations}</div>
                       </Link>
                     </li>
                     <li className={`menu-item ${pathname === "/gift-shop" ? "current" : ""}`}>
                       <Link href="/gift-shop" className="menu-link">
-                        <div>Gift Shop</div>
+                        <div>{t.nav.giftShop}</div>
                       </Link>
                     </li>
                     <li className="menu-item">
                       <Link href="/#contact" className="menu-link">
-                        <div>Contact</div>
+                        <div>{t.nav.contact}</div>
                       </Link>
                     </li>
                   </>
                 )}
+                <li className="menu-item lang-toggle-item">
+                  <div className="menu-link lang-toggle" role="group" aria-label={t.nav.langLabel}>
+                    <button
+                      type="button"
+                      className={`lang-toggle-btn${locale === "de" ? " is-active" : ""}`}
+                      aria-pressed={locale === "de"}
+                      onClick={() => pickLocale("de")}
+                    >
+                      DE
+                    </button>
+                    <span className="lang-toggle-sep" aria-hidden="true">
+                      |
+                    </span>
+                    <button
+                      type="button"
+                      className={`lang-toggle-btn${locale === "en" ? " is-active" : ""}`}
+                      aria-pressed={locale === "en"}
+                      onClick={() => pickLocale("en")}
+                    >
+                      EN
+                    </button>
+                  </div>
+                </li>
                 <li className="noborder menu-item">
                   <a className="menu-link" href={telHref}>
                     <div>{phone || "+43 677 634 238 81"}</div>

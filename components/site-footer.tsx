@@ -1,4 +1,10 @@
+"use client";
+
+import { useT } from "@/lib/i18n/language-context";
+
 export function SiteFooter() {
+  const t = useT();
+
   return (
     <footer
       id="footer"
@@ -13,7 +19,7 @@ export function SiteFooter() {
         <div className="container">
           <div className="row col-mb-30">
             <div className="col-md-6 text-center text-md-start">
-              Copyrights &copy; 2026 All Rights Reserved by Dashouse Inc.
+              {t.footer.copyright}
               <br />
             </div>
             <div className="col-md-6 text-center text-md-end">
