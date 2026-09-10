@@ -101,7 +101,7 @@
 .admin-main {
   margin-left: 0;
   min-height: 100vh;
-  padding: 1.25rem;
+  padding: 1.25rem 1.5rem 2rem;
 }
 
 @media (min-width: 768px) {
@@ -111,11 +111,12 @@
 }
 
 .admin-main-content {
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  padding: 1.5rem;
-  max-width: 1200px;
+  width: 100%;
+  max-width: none;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .admin-page-header {
@@ -333,9 +334,16 @@
 /* Stats / quick action cards */
 .admin-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-stat-card {
@@ -366,8 +374,21 @@
 
 .admin-quick-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 1000px) {
+  .admin-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-quick-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-quick-card {
@@ -378,6 +399,10 @@
   text-align: center;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
 }
 
 .admin-quick-card:hover {
