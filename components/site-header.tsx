@@ -148,6 +148,11 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
                       </Link>
                     </li>
                     <li className="menu-item">
+                      <Link href="/adopt" className="menu-link">
+                        <div>{t.nav.adopt}</div>
+                      </Link>
+                    </li>
+                    <li className="menu-item">
                       <a className="menu-link" href="#contact" data-offset="20" onClick={closeMenu}>
                         <div>{t.nav.contact}</div>
                       </a>
@@ -178,6 +183,11 @@ export function SiteHeader({ phone }: { phone?: string | null }) {
                     <li className={`menu-item ${pathname === "/gift-shop" ? "current" : ""}`}>
                       <Link href="/gift-shop" className="menu-link">
                         <div>{t.nav.giftShop}</div>
+                      </Link>
+                    </li>
+                    <li className={`menu-item ${pathname === "/adopt" ? "current" : ""}`}>
+                      <Link href="/adopt" className="menu-link">
+                        <div>{t.nav.adopt}</div>
                       </Link>
                     </li>
                     <li className="menu-item">

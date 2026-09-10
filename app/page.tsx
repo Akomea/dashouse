@@ -322,6 +322,14 @@ export default function HomePage() {
                   <div className="before-heading font-primary color">{t.story.eyebrow}</div>
                   <h1 className="font-secondary display-4 fw-bold">{t.story.heading}</h1>
                   <p className="lead">{t.story.body}</p>
+                  <p className="mt-3 mb-0">
+                    <a
+                      href="/adopt"
+                      className="button button-large button-rounded px-4 button-border button-light button-white fw-semibold"
+                    >
+                      {t.story.adoptCta}
+                    </a>
+                  </p>
                   <div className="mx-auto my-5" style={{ maxWidth: 660 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
