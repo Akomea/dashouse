@@ -184,10 +184,12 @@ export async function POST(req: Request) {
       },
     });
 
-    const recipient = process.env.CONTACT_TO_EMAIL || process.env.SMTP_USER;
+    const recipient =
+      process.env.CONTACT_TO_EMAIL ||
+      "info@dashouse.at,kakomea@yahoo.com";
     await transporter.sendMail({
       from: process.env.CONTACT_FROM_EMAIL || process.env.SMTP_USER,
-      to: recipient,
+      to: recipient.split(",").map((e) => e.trim()).filter(Boolean),
       replyTo: data.email,
       subject: `Das House Adoption: ${data.fullName}`,
       text,

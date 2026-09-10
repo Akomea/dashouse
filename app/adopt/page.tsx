@@ -103,28 +103,6 @@ export default function AdoptPage() {
 
       <div className="adopt-sheet-wrap">
         <div className="adopt-sheet">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="adopt-deco adopt-deco-left"
-            src="/docs/adopt/cat-left.png"
-            alt=""
-            aria-hidden="true"
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="adopt-deco adopt-deco-right"
-            src="/docs/adopt/cat-right.png"
-            alt=""
-            aria-hidden="true"
-          />
-          <div className="adopt-paws" aria-hidden="true">
-            🐾 🐾 🐾
-          </div>
-
-          <div className="adopt-sheet-logo">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/docs/adopt/logo.png" alt="Das House" />
-          </div>
           <p className="adopt-intro">{t.adopt.intro}</p>
           <p className="adopt-required-note">{t.adopt.requiredNote}</p>
 
@@ -509,15 +487,18 @@ export default function AdoptPage() {
                         onChange={(e) => set("anythingElse")(e.target.value)}
                       />
                     </Field>
-                    <label className="adopt-consent">
+                    <div className="adopt-consent">
                       <input
+                        id="adopt-consent"
                         type="checkbox"
                         required
                         checked={form.consent}
                         onChange={(e) => set("consent")(e.target.checked)}
                       />
-                      <span>{f.consent} *</span>
-                    </label>
+                      <label htmlFor="adopt-consent">
+                        {f.consent} *
+                      </label>
+                    </div>
                     <div className="adopt-footer-fields">
                       <Field label={`${f.placeDate} *`}>
                         <input
