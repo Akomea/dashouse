@@ -219,6 +219,43 @@
   border-bottom-color: #39706a;
 }
 
+.adopt-field.has-error input[type="text"],
+.adopt-field.has-error input[type="email"],
+.adopt-field.has-error input[type="tel"],
+.adopt-field.has-error input[type="date"],
+.adopt-field.has-error input[type="number"],
+.adopt-field.has-error textarea {
+  border-bottom-color: #c0392b;
+  border-color: #c0392b;
+}
+
+.adopt-fieldset.has-error,
+.adopt-consent.has-error {
+  outline: 1.5px solid rgba(192, 57, 43, 0.45);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.adopt-field-error {
+  margin: 0.35rem 0 0;
+  color: #c0392b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.adopt-consent.has-error .adopt-field-error {
+  grid-column: 1 / -1;
+}
+
+.adopt-status.err p {
+  margin: 0 0 0.75rem;
+}
+
+.adopt-status.err .adopt-btn {
+  margin-top: 0.25rem;
+}
+
 .adopt-field textarea {
   min-height: 4.5rem;
   resize: vertical;

@@ -1,6 +1,11 @@
 "use client";
 
 import { FormEvent, ReactNode, useMemo, useState } from "react";
+import {
+  validateAdoptPayload,
+  type AdoptFieldErrors,
+  type AdoptFieldKey,
+} from "@/lib/adopt";
 import { useLanguage, useT } from "@/lib/i18n/language-context";
 import "./adopt.css";
 
@@ -40,27 +45,61 @@ const emptyForm = {
   signature: "",
 };
 
+type FormState = typeof emptyForm;
+
+function scrollToFirstError(errors: AdoptFieldErrors) {
+  const first = Object.keys(errors)[0];
+  if (!first) return;
+  const el = document.querySelector(`[data-field="${first}"]`);
+  if (el instanceof HTMLElement) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
 export default function AdoptPage() {
   const t = useT();
   const { locale } = useLanguage();
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<FormState>(emptyForm);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<AdoptFieldErrors>({});
 
   const f = t.adopt.fields;
 
+  const messageForCode = (code: string) => {
+    if (code === "email") return t.adopt.fieldEmail;
+    if (code === "consent") return t.adopt.fieldConsent;
+    return t.adopt.fieldRequired;
+  };
+
+  const localizeErrors = (errors: AdoptFieldErrors): AdoptFieldErrors => {
+    const next: AdoptFieldErrors = {};
+    for (const [key, code] of Object.entries(errors) as [AdoptFieldKey, string][]) {
+      next[key] = messageForCode(code);
+    }
+    return next;
+  };
+
   const set =
-    (key: keyof typeof emptyForm) =>
+    (key: keyof FormState) =>
     (value: string | boolean) => {
       setForm((prev) => ({ ...prev, [key]: value }));
-      if (status === "error" || status === "success") setStatus("idle");
+      setFieldErrors((prev) => {
+        if (!prev[key as AdoptFieldKey]) return prev;
+        const next = { ...prev };
+        delete next[key as AdoptFieldKey];
+        return next;
+      });
+      if (status === "error" || status === "success") {
+        setStatus("idle");
+        setErrorMsg("");
+      }
     };
 
   const householdOptions = useMemo(() => ["1", "2", "3", "4", "5+"], []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setStatus("submitting");
     setErrorMsg("");
 
     const payload = {
@@ -69,6 +108,19 @@ export default function AdoptPage() {
       locale,
     };
 
+    const clientCheck = validateAdoptPayload(payload);
+    if (!clientCheck.success) {
+      const localized = localizeErrors(clientCheck.fieldErrors);
+      setFieldErrors(localized);
+      setStatus("error");
+      setErrorMsg(t.adopt.validationFix);
+      scrollToFirstError(localized);
+      return;
+    }
+
+    setStatus("submitting");
+    setFieldErrors({});
+
     try {
       const res = await fetch("/api/adopt", {
         method: "POST",
@@ -76,18 +128,32 @@ export default function AdoptPage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
+
+      if (data.code === "VALIDATION_ERROR" && data.fieldErrors) {
+        const localized = localizeErrors(data.fieldErrors as AdoptFieldErrors);
+        setFieldErrors(localized);
+        setStatus("error");
+        setErrorMsg(t.adopt.validationFix);
+        scrollToFirstError(localized);
+        return;
+      }
+
       if (!res.ok || data.success === false) {
         setStatus("error");
         setErrorMsg(typeof data.error === "string" ? data.error : t.adopt.error);
         return;
       }
+
       setStatus("success");
       setForm(emptyForm);
+      setFieldErrors({});
     } catch {
       setStatus("error");
       setErrorMsg(t.adopt.error);
     }
   }
+
+  const err = (key: AdoptFieldKey) => fieldErrors[key];
 
   return (
     <div className="adopt-page">
@@ -114,57 +180,57 @@ export default function AdoptPage() {
                     {t.adopt.sections.personal}
                   </div>
                   <div className="adopt-section-body">
-                    <Field label={`${f.fullName} *`}>
+                    <Field label={`${f.fullName} *`} error={err("fullName")} fieldKey="fullName">
                       <input
                         type="text"
-                        required
                         autoComplete="name"
+                        aria-invalid={Boolean(err("fullName"))}
                         value={form.fullName}
                         onChange={(e) => set("fullName")(e.target.value)}
                       />
                     </Field>
                     <div className="adopt-row two">
-                      <Field label={`${f.dateOfBirth} *`}>
+                      <Field label={`${f.dateOfBirth} *`} error={err("dateOfBirth")} fieldKey="dateOfBirth">
                         <input
                           type="date"
-                          required
+                          aria-invalid={Boolean(err("dateOfBirth"))}
                           value={form.dateOfBirth}
                           onChange={(e) => set("dateOfBirth")(e.target.value)}
                         />
                       </Field>
-                      <Field label={`${f.phone} *`}>
+                      <Field label={`${f.phone} *`} error={err("phone")} fieldKey="phone">
                         <input
                           type="tel"
-                          required
                           autoComplete="tel"
+                          aria-invalid={Boolean(err("phone"))}
                           value={form.phone}
                           onChange={(e) => set("phone")(e.target.value)}
                         />
                       </Field>
                     </div>
-                    <Field label={`${f.email} *`}>
+                    <Field label={`${f.email} *`} error={err("email")} fieldKey="email">
                       <input
                         type="email"
-                        required
                         autoComplete="email"
+                        aria-invalid={Boolean(err("email"))}
                         value={form.email}
                         onChange={(e) => set("email")(e.target.value)}
                       />
                     </Field>
-                    <Field label={`${f.address} *`}>
+                    <Field label={`${f.address} *`} error={err("address")} fieldKey="address">
                       <input
                         type="text"
-                        required
                         autoComplete="street-address"
+                        aria-invalid={Boolean(err("address"))}
                         value={form.address}
                         onChange={(e) => set("address")(e.target.value)}
                       />
                     </Field>
-                    <Field label={`${f.cityPostal} *`}>
+                    <Field label={`${f.cityPostal} *`} error={err("cityPostal")} fieldKey="cityPostal">
                       <input
                         type="text"
-                        required
                         autoComplete="postal-code"
+                        aria-invalid={Boolean(err("cityPostal"))}
                         value={form.cityPostal}
                         onChange={(e) => set("cityPostal")(e.target.value)}
                       />
@@ -177,7 +243,12 @@ export default function AdoptPage() {
                     {t.adopt.sections.household}
                   </div>
                   <div className="adopt-section-body">
-                    <ChoiceGroup legend={`${f.householdSize} *`} name="householdSize">
+                    <ChoiceGroup
+                      legend={`${f.householdSize} *`}
+                      name="householdSize"
+                      error={err("householdSize")}
+                      fieldKey="householdSize"
+                    >
                       {householdOptions.map((n) => (
                         <Choice
                           key={n}
@@ -185,17 +256,20 @@ export default function AdoptPage() {
                           checked={form.householdSize === n}
                           onChange={() => set("householdSize")(n)}
                           label={n}
-                          required
                         />
                       ))}
                     </ChoiceGroup>
-                    <ChoiceGroup legend={`${f.children} *`} name="children">
+                    <ChoiceGroup
+                      legend={`${f.children} *`}
+                      name="children"
+                      error={err("children")}
+                      fieldKey="children"
+                    >
                       <Choice
                         name="children"
                         checked={form.children === "yes"}
                         onChange={() => set("children")("yes")}
                         label={t.adopt.yes}
-                        required
                       />
                       <Choice
                         name="children"
@@ -205,22 +279,26 @@ export default function AdoptPage() {
                       />
                     </ChoiceGroup>
                     {form.children === "yes" && (
-                      <Field label={`${f.childrenAges} *`}>
+                      <Field label={`${f.childrenAges} *`} error={err("childrenAges")} fieldKey="childrenAges">
                         <input
                           type="text"
-                          required
+                          aria-invalid={Boolean(err("childrenAges"))}
                           value={form.childrenAges}
                           onChange={(e) => set("childrenAges")(e.target.value)}
                         />
                       </Field>
                     )}
-                    <ChoiceGroup legend={`${f.otherAnimals} *`} name="otherAnimals">
+                    <ChoiceGroup
+                      legend={`${f.otherAnimals} *`}
+                      name="otherAnimals"
+                      error={err("otherAnimals")}
+                      fieldKey="otherAnimals"
+                    >
                       <Choice
                         name="otherAnimals"
                         checked={form.otherAnimals === "yes"}
                         onChange={() => set("otherAnimals")("yes")}
                         label={t.adopt.yes}
-                        required
                       />
                       <Choice
                         name="otherAnimals"
@@ -230,10 +308,14 @@ export default function AdoptPage() {
                       />
                     </ChoiceGroup>
                     {form.otherAnimals === "yes" && (
-                      <Field label={`${f.otherAnimalsDetail} *`}>
+                      <Field
+                        label={`${f.otherAnimalsDetail} *`}
+                        error={err("otherAnimalsDetail")}
+                        fieldKey="otherAnimalsDetail"
+                      >
                         <input
                           type="text"
-                          required
+                          aria-invalid={Boolean(err("otherAnimalsDetail"))}
                           value={form.otherAnimalsDetail}
                           onChange={(e) => set("otherAnimalsDetail")(e.target.value)}
                         />
@@ -247,13 +329,17 @@ export default function AdoptPage() {
                     {t.adopt.sections.living}
                   </div>
                   <div className="adopt-section-body">
-                    <ChoiceGroup legend={`${f.homeType} *`} name="homeType">
+                    <ChoiceGroup
+                      legend={`${f.homeType} *`}
+                      name="homeType"
+                      error={err("homeType")}
+                      fieldKey="homeType"
+                    >
                       <Choice
                         name="homeType"
                         checked={form.homeType === "apartment"}
                         onChange={() => set("homeType")("apartment")}
                         label={f.apartment}
-                        required
                       />
                       <Choice
                         name="homeType"
@@ -262,22 +348,21 @@ export default function AdoptPage() {
                         label={f.house}
                       />
                     </ChoiceGroup>
-                    <Field label={`${f.livingSpace} *`}>
+                    <Field label={`${f.livingSpace} *`} error={err("livingSpace")} fieldKey="livingSpace">
                       <input
                         type="text"
-                        required
                         inputMode="numeric"
+                        aria-invalid={Boolean(err("livingSpace"))}
                         value={form.livingSpace}
                         onChange={(e) => set("livingSpace")(e.target.value)}
                       />
                     </Field>
-                    <ChoiceGroup legend={`${f.balcony} *`} name="balcony">
+                    <ChoiceGroup legend={`${f.balcony} *`} name="balcony" error={err("balcony")} fieldKey="balcony">
                       <Choice
                         name="balcony"
                         checked={form.balcony === "yes"}
                         onChange={() => set("balcony")("yes")}
                         label={t.adopt.yes}
-                        required
                       />
                       <Choice
                         name="balcony"
@@ -286,13 +371,12 @@ export default function AdoptPage() {
                         label={t.adopt.no}
                       />
                     </ChoiceGroup>
-                    <ChoiceGroup legend={`${f.secured} *`} name="secured">
+                    <ChoiceGroup legend={`${f.secured} *`} name="secured" error={err("secured")} fieldKey="secured">
                       <Choice
                         name="secured"
                         checked={form.secured === "yes"}
                         onChange={() => set("secured")("yes")}
                         label={t.adopt.yes}
-                        required
                       />
                       <Choice
                         name="secured"
@@ -307,13 +391,12 @@ export default function AdoptPage() {
                         label={t.adopt.notApplicable}
                       />
                     </ChoiceGroup>
-                    <ChoiceGroup legend={`${f.renting} *`} name="renting">
+                    <ChoiceGroup legend={`${f.renting} *`} name="renting" error={err("renting")} fieldKey="renting">
                       <Choice
                         name="renting"
                         checked={form.renting === "yes"}
                         onChange={() => set("renting")("yes")}
                         label={t.adopt.yes}
-                        required
                       />
                       <Choice
                         name="renting"
@@ -326,13 +409,17 @@ export default function AdoptPage() {
                       />
                     </ChoiceGroup>
                     {form.renting === "yes" && (
-                      <ChoiceGroup legend={`${f.landlordPermission} *`} name="landlordPermission">
+                      <ChoiceGroup
+                        legend={`${f.landlordPermission} *`}
+                        name="landlordPermission"
+                        error={err("landlordPermission")}
+                        fieldKey="landlordPermission"
+                      >
                         <Choice
                           name="landlordPermission"
                           checked={form.landlordPermission === "yes"}
                           onChange={() => set("landlordPermission")("yes")}
                           label={t.adopt.yes}
-                          required
                         />
                         <Choice
                           name="landlordPermission"
@@ -358,7 +445,12 @@ export default function AdoptPage() {
                     {t.adopt.sections.employment}
                   </div>
                   <div className="adopt-section-body">
-                    <ChoiceGroup legend={`${f.employmentStatus} *`} name="employmentStatus">
+                    <ChoiceGroup
+                      legend={`${f.employmentStatus} *`}
+                      name="employmentStatus"
+                      error={err("employmentStatus")}
+                      fieldKey="employmentStatus"
+                    >
                       {(
                         [
                           ["fullTime", f.fullTime],
@@ -368,25 +460,29 @@ export default function AdoptPage() {
                           ["vocationalTraining", f.vocationalTraining],
                           ["notEmployed", f.notEmployed],
                         ] as const
-                      ).map(([value, label], i) => (
+                      ).map(([value, label]) => (
                         <Choice
                           key={value}
                           name="employmentStatus"
                           checked={form.employmentStatus === value}
                           onChange={() => set("employmentStatus")(value)}
                           label={label}
-                          required={i === 0}
                         />
                       ))}
                     </ChoiceGroup>
-                    <Field label={f.profession}>
+                    <Field label={f.profession} fieldKey="profession">
                       <input
                         type="text"
                         value={form.profession}
                         onChange={(e) => set("profession")(e.target.value)}
                       />
                     </Field>
-                    <ChoiceGroup legend={`${f.hoursAway} *`} name="hoursAway">
+                    <ChoiceGroup
+                      legend={`${f.hoursAway} *`}
+                      name="hoursAway"
+                      error={err("hoursAway")}
+                      fieldKey="hoursAway"
+                    >
                       {(
                         [
                           ["lessThan4", f.lessThan4],
@@ -394,14 +490,13 @@ export default function AdoptPage() {
                           ["hours6to8", f.hours6to8],
                           ["moreThan8", f.moreThan8],
                         ] as const
-                      ).map(([value, label], i) => (
+                      ).map(([value, label]) => (
                         <Choice
                           key={value}
                           name="hoursAway"
                           checked={form.hoursAway === value}
                           onChange={() => set("hoursAway")(value)}
                           label={label}
-                          required={i === 0}
                         />
                       ))}
                     </ChoiceGroup>
@@ -413,13 +508,12 @@ export default function AdoptPage() {
                     {t.adopt.sections.experience}
                   </div>
                   <div className="adopt-section-body">
-                    <ChoiceGroup legend={`${f.hadCats} *`} name="hadCats">
+                    <ChoiceGroup legend={`${f.hadCats} *`} name="hadCats" error={err("hadCats")} fieldKey="hadCats">
                       <Choice
                         name="hadCats"
                         checked={form.hadCats === "yes"}
                         onChange={() => set("hadCats")("yes")}
                         label={t.adopt.yes}
-                        required
                       />
                       <Choice
                         name="hadCats"
@@ -429,21 +523,25 @@ export default function AdoptPage() {
                       />
                     </ChoiceGroup>
                     {form.hadCats === "yes" && (
-                      <Field label={`${f.hadCatsDetail} *`}>
+                      <Field label={`${f.hadCatsDetail} *`} error={err("hadCatsDetail")} fieldKey="hadCatsDetail">
                         <textarea
-                          required
+                          aria-invalid={Boolean(err("hadCatsDetail"))}
                           value={form.hadCatsDetail}
                           onChange={(e) => set("hadCatsDetail")(e.target.value)}
                         />
                       </Field>
                     )}
-                    <ChoiceGroup legend={`${f.specialNeeds} *`} name="specialNeeds">
+                    <ChoiceGroup
+                      legend={`${f.specialNeeds} *`}
+                      name="specialNeeds"
+                      error={err("specialNeeds")}
+                      fieldKey="specialNeeds"
+                    >
                       <Choice
                         name="specialNeeds"
                         checked={form.specialNeeds === "yes"}
                         onChange={() => set("specialNeeds")("yes")}
                         label={t.adopt.yes}
-                        required
                       />
                       <Choice
                         name="specialNeeds"
@@ -460,14 +558,14 @@ export default function AdoptPage() {
                     {t.adopt.sections.motivation}
                   </div>
                   <div className="adopt-section-body">
-                    <Field label={`${f.whyAdopt} *`}>
+                    <Field label={`${f.whyAdopt} *`} error={err("whyAdopt")} fieldKey="whyAdopt">
                       <textarea
-                        required
+                        aria-invalid={Boolean(err("whyAdopt"))}
                         value={form.whyAdopt}
                         onChange={(e) => set("whyAdopt")(e.target.value)}
                       />
                     </Field>
-                    <Field label={f.whichCats}>
+                    <Field label={f.whichCats} fieldKey="whichCats">
                       <textarea
                         value={form.whichCats}
                         onChange={(e) => set("whichCats")(e.target.value)}
@@ -481,37 +579,39 @@ export default function AdoptPage() {
                     {t.adopt.sections.additional}
                   </div>
                   <div className="adopt-section-body">
-                    <Field label={f.anythingElse}>
+                    <Field label={f.anythingElse} fieldKey="anythingElse">
                       <textarea
                         value={form.anythingElse}
                         onChange={(e) => set("anythingElse")(e.target.value)}
                       />
                     </Field>
-                    <div className="adopt-consent">
+                    <div
+                      className={`adopt-consent${err("consent") ? " has-error" : ""}`}
+                      data-field="consent"
+                    >
                       <input
                         id="adopt-consent"
                         type="checkbox"
-                        required
+                        aria-invalid={Boolean(err("consent"))}
                         checked={form.consent}
                         onChange={(e) => set("consent")(e.target.checked)}
                       />
-                      <label htmlFor="adopt-consent">
-                        {f.consent} *
-                      </label>
+                      <label htmlFor="adopt-consent">{f.consent} *</label>
+                      {err("consent") ? <p className="adopt-field-error">{err("consent")}</p> : null}
                     </div>
                     <div className="adopt-footer-fields">
-                      <Field label={`${f.placeDate} *`}>
+                      <Field label={`${f.placeDate} *`} error={err("placeDate")} fieldKey="placeDate">
                         <input
                           type="text"
-                          required
+                          aria-invalid={Boolean(err("placeDate"))}
                           value={form.placeDate}
                           onChange={(e) => set("placeDate")(e.target.value)}
                         />
                       </Field>
-                      <Field label={`${f.signature} *`}>
+                      <Field label={`${f.signature} *`} error={err("signature")} fieldKey="signature">
                         <input
                           type="text"
-                          required
+                          aria-invalid={Boolean(err("signature"))}
                           value={form.signature}
                           onChange={(e) => set("signature")(e.target.value)}
                         />
@@ -537,7 +637,9 @@ export default function AdoptPage() {
 
             {status === "success" && <div className="adopt-status ok">{t.adopt.success}</div>}
             {status === "error" && (
-              <div className="adopt-status err">{errorMsg || t.adopt.error}</div>
+              <div className="adopt-status err" role="alert">
+                <p>{errorMsg || t.adopt.error}</p>
+              </div>
             )}
           </form>
         </div>
@@ -546,13 +648,24 @@ export default function AdoptPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({
+  label,
+  children,
+  error,
+  fieldKey,
+}: {
+  label: string;
+  children: ReactNode;
+  error?: string;
+  fieldKey: string;
+}) {
   return (
-    <div className="adopt-field">
+    <div className={`adopt-field${error ? " has-error" : ""}`} data-field={fieldKey}>
       <label>
         {label}
         {children}
       </label>
+      {error ? <p className="adopt-field-error">{error}</p> : null}
     </div>
   );
 }
@@ -561,15 +674,25 @@ function ChoiceGroup({
   legend,
   name,
   children,
+  error,
+  fieldKey,
 }: {
   legend: string;
   name: string;
   children: ReactNode;
+  error?: string;
+  fieldKey: string;
 }) {
   return (
-    <fieldset className="adopt-fieldset" name={name}>
+    <fieldset
+      className={`adopt-fieldset${error ? " has-error" : ""}`}
+      name={name}
+      data-field={fieldKey}
+      aria-invalid={Boolean(error)}
+    >
       <legend>{legend}</legend>
       <div className="adopt-choices">{children}</div>
+      {error ? <p className="adopt-field-error">{error}</p> : null}
     </fieldset>
   );
 }
@@ -579,23 +702,15 @@ function Choice({
   label,
   checked,
   onChange,
-  required,
 }: {
   name: string;
   label: string;
   checked: boolean;
   onChange: () => void;
-  required?: boolean;
 }) {
   return (
     <label className="adopt-choice">
-      <input
-        type="radio"
-        name={name}
-        checked={checked}
-        onChange={onChange}
-        required={required}
-      />
+      <input type="radio" name={name} checked={checked} onChange={onChange} />
       {label}
     </label>
   );

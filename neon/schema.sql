@@ -142,6 +142,17 @@ CREATE TABLE IF NOT EXISTS gift_shop_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS adoption_applications (
+    id BIGSERIAL PRIMARY KEY,
+    full_name VARCHAR(200) NOT NULL,
+    email VARCHAR(200) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    locale VARCHAR(8) DEFAULT 'de',
+    payload JSONB NOT NULL,
+    status VARCHAR(32) DEFAULT 'new',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 INSERT INTO business_info (id, business_name, email, phone, address, description)
 VALUES (
     1,

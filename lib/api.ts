@@ -4,8 +4,8 @@ export function ok(data: unknown, init?: ResponseInit) {
   return NextResponse.json({ success: true, ...(typeof data === "object" && data ? data : { data }) }, init);
 }
 
-export function fail(error: string, status = 400) {
-  return NextResponse.json({ success: false, error }, { status });
+export function fail(error: string, status = 400, extra?: Record<string, unknown>) {
+  return NextResponse.json({ success: false, error, ...extra }, { status });
 }
 
 export function toBool(value: unknown, fallback = false) {

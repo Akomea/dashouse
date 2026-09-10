@@ -1,5 +1,5 @@
-import nodemailer from "nodemailer";
 import { fail, ok } from "@/lib/api";
+import { isMailConfigured, sendMail } from "@/lib/mail";
 
 export async function POST(req: Request) {
   try {
@@ -12,26 +12,16 @@ export async function POST(req: Request) {
       return fail("name, email and message are required");
     }
 
-    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return fail("SMTP configuration is missing", 500);
+    if (!isMailConfigured()) {
+      return fail("Email delivery is not configured on the server.", 503, {
+        code: "SMTP_NOT_CONFIGURED",
+      });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-
-    const recipient = process.env.CONTACT_TO_EMAIL || process.env.SMTP_USER;
-    await transporter.sendMail({
-      from: process.env.CONTACT_FROM_EMAIL || process.env.SMTP_USER,
-      to: recipient,
+    await sendMail({
       subject: `Das House Contact: ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\n\n${message}`
+      text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
+      replyTo: email,
     });
 
     return ok({ message: "Message sent successfully" });

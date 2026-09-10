@@ -9,6 +9,7 @@ const navItems: { href: string; label: string }[] = [
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/photos", label: "Photos" },
   { href: "/admin/gift-shop", label: "Gift Shop" },
+  { href: "/admin/adoptions", label: "Adoptions" },
   { href: "/admin/business-info", label: "Business Info" },
   { href: "/admin/settings", label: "Settings" }
 ];

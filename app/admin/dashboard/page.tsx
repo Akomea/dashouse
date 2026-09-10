@@ -8,6 +8,7 @@ const quickActions = [
   { href: "/admin/photos", title: "Upload Photos", desc: "Add images for menu items and categories" },
   { href: "/admin/categories", title: "Manage Categories", desc: "Organize your menu with categories" },
   { href: "/admin/gift-shop", title: "Gift Shop Manager", desc: "Manage merchandise and products" },
+  { href: "/admin/adoptions", title: "Adoption Applications", desc: "Review cat adoption form submissions" },
   { href: "/admin/business-info", title: "Business Information", desc: "Update contact and operating hours" },
   { href: "/admin/settings", title: "Settings", desc: "Site settings and configuration" }
 ];

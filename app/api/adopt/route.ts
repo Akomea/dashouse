@@ -1,71 +1,7 @@
-import nodemailer from "nodemailer";
-import { z } from "zod";
 import { fail, ok } from "@/lib/api";
-
-const optionalText = z.string().trim().max(2000).optional().default("");
-
-const adoptSchema = z
-  .object({
-    fullName: z.string().trim().min(1).max(200),
-    dateOfBirth: z.string().trim().min(1).max(50),
-    phone: z.string().trim().min(1).max(50),
-    email: z.string().trim().email().max(200),
-    address: z.string().trim().min(1).max(300),
-    cityPostal: z.string().trim().min(1).max(200),
-    householdSize: z.enum(["1", "2", "3", "4", "5+"]),
-    children: z.enum(["yes", "no"]),
-    childrenAges: optionalText,
-    otherAnimals: z.enum(["yes", "no"]),
-    otherAnimalsDetail: optionalText,
-    homeType: z.enum(["apartment", "house"]),
-    livingSpace: z.string().trim().min(1).max(50),
-    balcony: z.enum(["yes", "no"]),
-    secured: z.enum(["yes", "no", "na"]),
-    renting: z.enum(["yes", "no"]),
-    landlordPermission: z.enum(["yes", "no", "pending", ""]).optional().default(""),
-    employmentStatus: z.enum([
-      "fullTime",
-      "partTime",
-      "selfEmployed",
-      "student",
-      "vocationalTraining",
-      "notEmployed",
-    ]),
-    profession: optionalText,
-    hoursAway: z.enum(["lessThan4", "hours4to6", "hours6to8", "moreThan8"]),
-    hadCats: z.enum(["yes", "no"]),
-    hadCatsDetail: optionalText,
-    specialNeeds: z.enum(["yes", "no"]),
-    whyAdopt: z.string().trim().min(1).max(2000),
-    whichCats: optionalText,
-    anythingElse: optionalText,
-    consent: z.literal(true),
-    placeDate: z.string().trim().min(1).max(200),
-    signature: z.string().trim().min(1).max(200),
-    locale: z.enum(["de", "en"]).optional().default("de"),
-  })
-  .superRefine((data, ctx) => {
-    if (data.children === "yes" && !data.childrenAges) {
-      ctx.addIssue({ code: "custom", path: ["childrenAges"], message: "required when children is yes" });
-    }
-    if (data.otherAnimals === "yes" && !data.otherAnimalsDetail) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["otherAnimalsDetail"],
-        message: "required when otherAnimals is yes",
-      });
-    }
-    if (data.renting === "yes" && !data.landlordPermission) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["landlordPermission"],
-        message: "required when renting is yes",
-      });
-    }
-    if (data.hadCats === "yes" && !data.hadCatsDetail) {
-      ctx.addIssue({ code: "custom", path: ["hadCatsDetail"], message: "required when hadCats is yes" });
-    }
-  });
+import { validateAdoptPayload, type AdoptPayload } from "@/lib/adopt";
+import { saveAdoptionApplication } from "@/lib/adoption-store";
+import { isMailConfigured, sendMail } from "@/lib/mail";
 
 function label(locale: "de" | "en", de: string, en: string) {
   return locale === "en" ? en : de;
@@ -95,7 +31,7 @@ function yn(locale: "de" | "en", value: string) {
   return locale === "en" ? pair[1] : pair[0];
 }
 
-function formatBody(data: z.infer<typeof adoptSchema>) {
+function formatBody(data: AdoptPayload) {
   const loc = data.locale;
   const rows: [string, string][] = [
     [label(loc, "Name", "Name"), data.fullName],
@@ -155,49 +91,42 @@ function escapeHtml(value: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const parsed = adoptSchema.safeParse(body);
+    const parsed = validateAdoptPayload(body);
     if (!parsed.success) {
-      const missing = parsed.error.issues
-        .map((i) => (i.path.length ? String(i.path[0]) : i.message))
-        .filter(Boolean);
-      return fail(
-        missing.length
-          ? `Please check these fields: ${[...new Set(missing)].join(", ")}`
-          : "Invalid application"
-      );
-    }
-
-    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return fail("SMTP configuration is missing", 500);
+      return fail("Please check the highlighted fields.", 400, {
+        code: "VALIDATION_ERROR",
+        fieldErrors: parsed.fieldErrors,
+      });
     }
 
     const data = parsed.data;
-    const { text, html } = formatBody(data);
+    const saved = await saveAdoptionApplication(data);
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+    // Email is optional — DB save is what makes submit succeed
+    let emailed = false;
+    if (isMailConfigured()) {
+      try {
+        const { text, html } = formatBody(data);
+        await sendMail({
+          subject: `Das House Adoption: ${data.fullName}`,
+          text,
+          html,
+          replyTo: data.email,
+        });
+        emailed = true;
+      } catch {
+        emailed = false;
+      }
+    }
+
+    return ok({
+      message: "Application saved successfully",
+      id: saved?.id,
+      emailed,
     });
-
-    const recipient =
-      process.env.CONTACT_TO_EMAIL ||
-      "info@dashouse.at,kakomea@yahoo.com";
-    await transporter.sendMail({
-      from: process.env.CONTACT_FROM_EMAIL || process.env.SMTP_USER,
-      to: recipient.split(",").map((e) => e.trim()).filter(Boolean),
-      replyTo: data.email,
-      subject: `Das House Adoption: ${data.fullName}`,
-      text,
-      html,
-    });
-
-    return ok({ message: "Application sent successfully" });
   } catch (error) {
-    return fail(`Failed to send application: ${(error as Error).message}`, 500);
+    return fail(`Failed to save application: ${(error as Error).message}`, 500, {
+      code: "SAVE_FAILED",
+    });
   }
 }

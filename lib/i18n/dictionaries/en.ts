@@ -88,6 +88,12 @@ export type Dictionary = {
     success: string;
     error: string;
     requiredNote: string;
+    validationFix: string;
+    fieldRequired: string;
+    fieldEmail: string;
+    fieldConsent: string;
+    smtpMissing: string;
+    openMailApp: string;
     yes: string;
     no: string;
     notApplicable: string;
@@ -239,9 +245,16 @@ export const en: Dictionary = {
     download: "Download PDF form",
     submit: "Submit application",
     submitting: "Sending…",
-    success: "Thank you! Your adoption application was sent. We’ll be in touch soon.",
+    success: "Thank you! Your adoption application was received. We’ll be in touch soon.",
     error: "Something went wrong sending your application. Please try again or email us.",
     requiredNote: "Fields marked with * are required.",
+    validationFix: "Please check the highlighted fields.",
+    fieldRequired: "This field is required.",
+    fieldEmail: "Please enter a valid email address.",
+    fieldConsent: "Please confirm the consent checkbox.",
+    smtpMissing:
+      "Online sending isn’t set up yet. You can open your email app to send this application to Das House.",
+    openMailApp: "Open email app",
     yes: "Yes",
     no: "No",
     notApplicable: "Not applicable",
